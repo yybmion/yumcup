@@ -1,20 +1,13 @@
-import React, {useEffect, useState} from 'react';
-import axios from 'axios';
+// App.js
+import React from 'react';
+import WorldCupGame from './components/WorldCupGame';
 
 function App() {
-  const [msg, setMsg] = useState('')
-
-  useEffect(() => {
-    axios.get('/hello')
-        .then(response => setMsg(response.data))
-        .catch(error => console.log(error))
-  }, []);
-
-  return (
-      <div>
-        백엔드 통신 성공? : {msg}
-      </div>
-  );
+    return (
+        <div className="App">
+            <WorldCupGame />
+        </div>
+    );
 }
 
 export default App;
