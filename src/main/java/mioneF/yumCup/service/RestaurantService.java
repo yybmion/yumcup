@@ -2,9 +2,12 @@ package mioneF.yumCup.service;
 
 import jakarta.annotation.PostConstruct;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import mioneF.yumCup.domain.Restaurant;
+import mioneF.yumCup.domain.RestaurantResponse;
 import mioneF.yumCup.repository.RestaurantRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -134,5 +137,18 @@ public class RestaurantService {
 
             restaurantRepository.saveAll(dummyRestaurants);
         }
+    }
+
+    public List<RestaurantResponse> startGame() {
+        List<Restaurant> restaurants = restaurantRepository.findAll();
+        Collections.shuffle(restaurants);
+        List<Restaurant> selected = restaurants.stream()
+                .limit(16)
+                .collect(Collectors.toList());
+
+        return selected.stream()
+                .map(RestaurantResponse::from)
+                .collect(Collectors.toList()
+                );
     }
 }
