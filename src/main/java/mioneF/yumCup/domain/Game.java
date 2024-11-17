@@ -17,6 +17,9 @@ public class Game {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Enumerated(EnumType.STRING)
+    private GameStatus status;  // 게임 상태 (PROGRESS, COMPLETED)
+
     private Integer totalRounds;  // 총 라운드 수 (16강은 16, 8강은 8 등)
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -31,11 +34,13 @@ public class Game {
     @Builder
     public Game(Integer totalRounds) {
         this.totalRounds = totalRounds;
+        this.status = GameStatus.PROGRESS;
         this.startedAt = LocalDateTime.now();
     }
 
     public void complete(Restaurant winner) {
         this.winner = winner;
+        this.status = GameStatus.COMPLETED;
         this.endedAt = LocalDateTime.now();
     }
 
