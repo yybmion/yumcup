@@ -6,8 +6,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import mioneF.yumCup.domain.Game;
+import mioneF.yumCup.domain.GameResponse;
+import mioneF.yumCup.domain.Match;
 import mioneF.yumCup.domain.Restaurant;
-import mioneF.yumCup.domain.RestaurantResponse;
+import mioneF.yumCup.repository.GameRepository;
 import mioneF.yumCup.repository.RestaurantRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class RestaurantService {
     private final RestaurantRepository restaurantRepository;
+    private final GameRepository gameRepository;
 
     @PostConstruct
     @Transactional
@@ -139,16 +143,37 @@ public class RestaurantService {
         }
     }
 
-    public List<RestaurantResponse> startGame() {
+    public GameResponse startGame() {
+        // 1. 랜덤으로 16개 음식점 선택
         List<Restaurant> restaurants = restaurantRepository.findAll();
         Collections.shuffle(restaurants);
         List<Restaurant> selected = restaurants.stream()
                 .limit(16)
                 .collect(Collectors.toList());
 
-        return selected.stream()
-                .map(RestaurantResponse::from)
-                .collect(Collectors.toList()
-                );
+        // 2. 새 게임 생성
+        Game game = Game.builder()
+                .totalRounds(16)
+                .build();
+
+        // 3. 16강 매치들 생성 및 저장
+        for (int i = 0; i < selected.size(); i += 2) {
+            Match match = Match.builder()
+                    .restaurant1(selected.get(i))
+                    .restaurant2(selected.get(i + 1))
+                    .round(16)
+                    .matchOrder(i / 2 + 1)
+                    .build();
+
+            game.addMatch(match);
+        }
+
+        Game savedGame = gameRepository.save(game);
+
+        // 4. 첫 매치 정보와 함께 반환
+        return new GameResponse(savedGame.getId(), 16,
+                savedGame.getMatches().get(0),
+                savedGame.getMatches().size(),
+                savedGame.getStatus());
     }
 }
