@@ -6,8 +6,10 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import mioneF.yumCup.domain.Game;
 import mioneF.yumCup.domain.Match;
+import mioneF.yumCup.domain.MatchResponse;
 import mioneF.yumCup.domain.MatchResult;
 import mioneF.yumCup.domain.Restaurant;
+import mioneF.yumCup.domain.RestaurantResponse;
 import mioneF.yumCup.repository.GameRepository;
 import mioneF.yumCup.repository.MatchRepository;
 import mioneF.yumCup.repository.RestaurantRepository;
@@ -22,7 +24,7 @@ public class GameService {
     private final RestaurantRepository restaurantRepository;
 
     @Transactional
-    public MatchResult selectWinner(Long gameId, Long matchId, Long winnerId) {
+    public MatchResult  selectWinner(Long gameId, Long matchId, Long winnerId) {
         Game game = gameRepository.findById(gameId)
                 .orElseThrow(() -> new IllegalArgumentException("Game not found"));
 
@@ -60,7 +62,8 @@ public class GameService {
                 restaurantRepository.save(finalWinner);
                 gameRepository.save(game);
 
-                return new MatchResult(true, null, finalWinner);
+                return new MatchResult(
+                        true, null, RestaurantResponse.from(finalWinner));
             }
 
             // 다음 라운드 매치들 생성
@@ -84,16 +87,37 @@ public class GameService {
 
             matchRepository.saveAll(nextMatches);
 
-            return new MatchResult(false,
-                    game.getMatches().stream()
-                            .filter(m -> m.getRound() == nextRound)
-                            .findFirst().orElseThrow(), null);
+            // 5. 다음 라운드의 첫 매치 정보 반환
+            Match nextMatch = nextMatches.get(0);
+            return new MatchResult(
+                    false,  // gameComplete
+                    new MatchResponse(
+                            nextMatch.getId(),
+                            RestaurantResponse.from(nextMatch.getRestaurant1()),
+                            RestaurantResponse.from(nextMatch.getRestaurant2()),
+                            nextMatch.getRound(),
+                            nextMatch.getMatchOrder()
+                    ),
+                    null  // winner (아직 게임 진행 중)
+            );
         }
 
-        // 현재 라운드의 다음 매치 반환
-        return new MatchResult(false,matches.stream()
+        // 6. 현재 라운드의 다음 매치 반환
+        Match nextMatch = matches.stream()
                 .filter(m -> m.getRound() == currentRound && m.getMatchOrder() == currentOrder + 1)
                 .findFirst()
-                .orElseThrow(),null);
+                .orElseThrow(() -> new IllegalStateException("Next match not found"));
+
+        return new MatchResult(
+                false,  // gameComplete
+                new MatchResponse(
+                        nextMatch.getId(),
+                        RestaurantResponse.from(nextMatch.getRestaurant1()),
+                        RestaurantResponse.from(nextMatch.getRestaurant2()),
+                        nextMatch.getRound(),
+                        nextMatch.getMatchOrder()
+                ),
+                null  // winner (아직 게임 진행 중)
+        );
     }
 }

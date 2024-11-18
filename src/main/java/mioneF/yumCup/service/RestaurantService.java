@@ -9,7 +9,9 @@ import lombok.RequiredArgsConstructor;
 import mioneF.yumCup.domain.Game;
 import mioneF.yumCup.domain.GameResponse;
 import mioneF.yumCup.domain.Match;
+import mioneF.yumCup.domain.MatchResponse;
 import mioneF.yumCup.domain.Restaurant;
+import mioneF.yumCup.domain.RestaurantResponse;
 import mioneF.yumCup.repository.GameRepository;
 import mioneF.yumCup.repository.RestaurantRepository;
 import org.springframework.stereotype.Service;
@@ -171,9 +173,19 @@ public class RestaurantService {
         Game savedGame = gameRepository.save(game);
 
         // 4. 첫 매치 정보와 함께 반환
-        return new GameResponse(savedGame.getId(), 16,
-                savedGame.getMatches().get(0),
-                savedGame.getMatches().size(),
-                savedGame.getStatus());
+        Match currentMatch = savedGame.getMatches().get(0);
+
+        return new GameResponse(
+                savedGame.getId(),
+                16,  // currentRound
+                new MatchResponse(
+                        currentMatch.getId(),
+                        RestaurantResponse.from(currentMatch.getRestaurant1()),
+                        RestaurantResponse.from(currentMatch.getRestaurant2()),
+                        currentMatch.getRound(),
+                        currentMatch.getMatchOrder()
+                ),
+                savedGame.getStatus()
+        );
     }
 }

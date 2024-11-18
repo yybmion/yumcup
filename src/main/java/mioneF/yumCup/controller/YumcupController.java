@@ -3,13 +3,14 @@ package mioneF.yumCup.controller;
 import lombok.RequiredArgsConstructor;
 import mioneF.yumCup.domain.GameResponse;
 import mioneF.yumCup.domain.MatchResult;
+import mioneF.yumCup.domain.SelectWinnerRequest;
 import mioneF.yumCup.service.GameService;
 import mioneF.yumCup.service.RestaurantService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -27,11 +28,8 @@ public class YumcupController {
     }
 
     @PostMapping("/select")
-    public ResponseEntity<MatchResult> selectWinner(
-            @RequestParam Long gameId,
-            @RequestParam Long matchId,
-            @RequestParam Long winnerId) {
-        MatchResult result = gameService.selectWinner(gameId, matchId, winnerId);
-        return ResponseEntity.ok(result);
+    public ResponseEntity<MatchResult> selectWinner(@RequestBody SelectWinnerRequest request) {
+        MatchResult response = gameService.selectWinner(request.gameId(), request.matchId(), request.winnerId());
+        return ResponseEntity.ok(response);
     }
 }

@@ -3,8 +3,6 @@ package mioneF.yumCup.domain;
 public record GameResponse(
         Long gameId,
         Integer currentRound,
-        Match currentMatch,
-        Integer totalMatches,
+        MatchResponse currentMatch,
         GameStatus status
-) {
-}
+) {}
