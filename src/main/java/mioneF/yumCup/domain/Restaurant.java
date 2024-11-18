@@ -27,6 +27,15 @@ public class Restaurant {
     private Integer winCount;   // 우승 횟수
     private Integer playCount;  // 게임 참여 횟수
 
+    // 카카오맵 연동을 위한 필드들
+    private String kakaoId;     // 카카오 플레이스 ID
+    private Double latitude;    // 위도
+    private Double longitude;   // 경도
+    private String address;     // 주소
+    private String roadAddress; // 도로명 주소
+    private String phone;       // 전화번호
+    private String placeUrl;    // 카카오 플레이스 URL
+
     @OneToMany(mappedBy = "winner", cascade = CascadeType.ALL)
     private List<Game> games = new ArrayList<>();
 
@@ -37,13 +46,49 @@ public class Restaurant {
     private List<Match> matches2 = new ArrayList<>();
 
     @Builder
-    public Restaurant(String name, String category, Integer distance, String imageUrl) {
+    public Restaurant(
+            String name,
+            String category,
+            Integer distance,
+            String imageUrl,
+            String kakaoId,
+            Double latitude,
+            Double longitude,
+            String address,
+            String roadAddress,
+            String phone,
+            String placeUrl
+    ) {
         this.name = name;
         this.category = category;
         this.distance = distance;
         this.imageUrl = imageUrl;
+        this.kakaoId = kakaoId;
+        this.latitude = latitude;
+        this.longitude = longitude;
+        this.address = address;
+        this.roadAddress = roadAddress;
+        this.phone = phone;
+        this.placeUrl = placeUrl;
         this.winCount = 0;
         this.playCount = 0;
+    }
+
+    // 기존 더미데이터용 Builder
+    public static class DummyBuilder {
+        public static Restaurant buildDummy(
+                String name,
+                String category,
+                Integer distance,
+                String imageUrl
+        ) {
+            return Restaurant.builder()
+                    .name(name)
+                    .category(category)
+                    .distance(distance)
+                    .imageUrl(imageUrl)
+                    .build();
+        }
     }
 
     public void incrementWinCount() {
