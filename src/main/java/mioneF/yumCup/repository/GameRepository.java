@@ -1,6 +1,6 @@
 package mioneF.yumCup.repository;
 
-import mioneF.yumCup.domain.Game;
+import mioneF.yumCup.domain.entity.Game;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

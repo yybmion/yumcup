@@ -21,3 +21,20 @@ spring:
         format_sql: true
       default_batch_fetch_size: 100
     open-in-view: false
+
+  redis:
+    host: localhost  # Redis 서버 호스트
+    port: 6379      # Redis 서버 포트
+    cache:
+      type: redis
+      redis:
+        time-to-live: 86400000  # 24시간
+        cache-null-values: false
+
+kakao:
+  api:
+    key: ${KAKAO_REST_API_KEY}
+
+google:
+  api:
+    key: ${GOOGLE_REST_API_KEY}

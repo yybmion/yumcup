@@ -1,20 +1,37 @@
-package mioneF.yumCup.domain;
+package mioneF.yumCup.domain.dto.response;
+
+import mioneF.yumCup.domain.entity.Restaurant;
 
 public record RestaurantResponse(
         Long id,
         String name,
         String category,
         Integer distance,
-        String imageUrl
+        String address,
+        String roadAddress,
+        String phone,
+        String placeUrl,
+        String photoUrl,          // mainPhotoUrl -> photoUrl로 변경
+        String openingHours,
+        Double rating,
+        Integer ratingCount,      // 평점 개수 추가
+        String priceRange
 ) {
-    // 정적 팩토리 메서드도 record 안에 정의할 수 있습니다
     public static RestaurantResponse from(Restaurant restaurant) {
         return new RestaurantResponse(
                 restaurant.getId(),
                 restaurant.getName(),
                 restaurant.getCategory(),
                 restaurant.getDistance(),
-                restaurant.getImageUrl()
+                restaurant.getAddress(),
+                restaurant.getRoadAddress(),
+                restaurant.getPhone(),
+                restaurant.getPlaceUrl(),
+                restaurant.getPhotoUrl(),        // mainPhotoUrl -> photoUrl
+                restaurant.getOpeningHours(),
+                restaurant.getRating(),
+                restaurant.getRatingCount(),     // 평점 개수
+                restaurant.getPriceRange()
         );
     }
 }

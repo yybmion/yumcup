@@ -1,34 +1,32 @@
-package mioneF.yumCup.domain;
+package mioneF.yumCup.domain.entity;
 
-import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
-import java.util.ArrayList;
-import java.util.List;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import mioneF.yumCup.external.kakao.dto.KakaoPlaceResponse;
 
 @Entity
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)  // JPA를 위한 기본 생성자
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Restaurant {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // 기본 정보
     private String name;
     private String category;
     private Integer distance;
-    private String imageUrl;
     private Integer winCount;
     private Integer playCount;
 
-    // 카카오맵 연동을 위한 필드들
+    // 카카오맵 기본 정보
     private String kakaoId;
     private Double latitude;
     private Double longitude;
@@ -36,34 +34,37 @@ public class Restaurant {
     private String roadAddress;
     private String phone;
     private String placeUrl;
+    private String openingHours;
+    private String priceRange;      // 임시로 "만원-2만원" 고정값 사용
 
-    @OneToMany(mappedBy = "winner", cascade = CascadeType.ALL)
-    private List<Game> games = new ArrayList<>();
+    // 구글 Places API 정보
+    private Double rating;          // 구글 평점
+    private Integer ratingCount;    // 구글 평점 개수
 
-    @OneToMany(mappedBy = "restaurant1", cascade = CascadeType.ALL)
-    private List<Match> matches1 = new ArrayList<>();
-
-    @OneToMany(mappedBy = "restaurant2", cascade = CascadeType.ALL)
-    private List<Match> matches2 = new ArrayList<>();
+    @Column(columnDefinition = "TEXT")
+    private String photoUrl;        // 구글 이미지 URL
 
     @Builder(toBuilder = true)
     public Restaurant(
             String name,
             String category,
             Integer distance,
-            String imageUrl,
             String kakaoId,
             Double latitude,
             Double longitude,
             String address,
             String roadAddress,
             String phone,
-            String placeUrl
+            String placeUrl,
+            String openingHours,
+            String priceRange,
+            Double rating,
+            Integer ratingCount,
+            String photoUrl
     ) {
         this.name = name;
         this.category = category;
         this.distance = distance;
-        this.imageUrl = imageUrl;
         this.kakaoId = kakaoId;
         this.latitude = latitude;
         this.longitude = longitude;
@@ -71,29 +72,37 @@ public class Restaurant {
         this.roadAddress = roadAddress;
         this.phone = phone;
         this.placeUrl = placeUrl;
+        this.openingHours = openingHours;
+        this.priceRange = priceRange;
+        this.rating = rating;
+        this.ratingCount = ratingCount;
+        this.photoUrl = photoUrl;
         this.winCount = 0;
         this.playCount = 0;
     }
 
-    // 더미데이터용 정적 팩토리 메서드
-    public static Restaurant createDummy(String name, String category, Integer distance, String imageUrl) {
-        return Restaurant.builder()
-                .name(name)
-                .category(category)
-                .distance(distance)
-                .imageUrl(imageUrl)
-                .build();
+    // 카카오 API 정보로 업데이트
+    public void updateWithKakaoDetail(KakaoPlaceResponse detail) {
+        if (detail != null) {
+            this.openingHours = detail.opening_hours();
+            this.priceRange = "만원-2만원";  // 임시 고정값
+        }
     }
 
+    // KakapMapGameService에서 사용
+    public void updateWithNewInfo(Restaurant newInfo) {
+        this.distance = newInfo.getDistance();
+        this.rating = newInfo.getRating();
+        this.ratingCount = newInfo.getRatingCount();
+        this.photoUrl = newInfo.getPhotoUrl();
+    }
+
+    // 게임 관련 메서드
     public void incrementWinCount() {
         this.winCount++;
     }
 
     public void incrementPlayCount() {
         this.playCount++;
-    }
-
-    public void updateDistance(Integer newDistance) {
-        this.distance = newDistance;
     }
 }
