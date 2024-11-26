@@ -8,33 +8,34 @@ import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import java.util.ArrayList;
 import java.util.List;
+import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Getter
-@RequiredArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)  // JPA를 위한 기본 생성자
 public class Restaurant {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String name;        // 음식점 이름
-    private String category;    // 음식 카테고리
-    private Integer distance;   // 거리(미터)
-    private String imageUrl;    // 음식점 이미지 URL
-    private Integer winCount;   // 우승 횟수
-    private Integer playCount;  // 게임 참여 횟수
+    private String name;
+    private String category;
+    private Integer distance;
+    private String imageUrl;
+    private Integer winCount;
+    private Integer playCount;
 
     // 카카오맵 연동을 위한 필드들
-    private String kakaoId;     // 카카오 플레이스 ID
-    private Double latitude;    // 위도
-    private Double longitude;   // 경도
-    private String address;     // 주소
-    private String roadAddress; // 도로명 주소
-    private String phone;       // 전화번호
-    private String placeUrl;    // 카카오 플레이스 URL
+    private String kakaoId;
+    private Double latitude;
+    private Double longitude;
+    private String address;
+    private String roadAddress;
+    private String phone;
+    private String placeUrl;
 
     @OneToMany(mappedBy = "winner", cascade = CascadeType.ALL)
     private List<Game> games = new ArrayList<>();
@@ -45,7 +46,7 @@ public class Restaurant {
     @OneToMany(mappedBy = "restaurant2", cascade = CascadeType.ALL)
     private List<Match> matches2 = new ArrayList<>();
 
-    @Builder
+    @Builder(toBuilder = true)
     public Restaurant(
             String name,
             String category,
@@ -74,21 +75,14 @@ public class Restaurant {
         this.playCount = 0;
     }
 
-    // 기존 더미데이터용 Builder
-    public static class DummyBuilder {
-        public static Restaurant buildDummy(
-                String name,
-                String category,
-                Integer distance,
-                String imageUrl
-        ) {
-            return Restaurant.builder()
-                    .name(name)
-                    .category(category)
-                    .distance(distance)
-                    .imageUrl(imageUrl)
-                    .build();
-        }
+    // 더미데이터용 정적 팩토리 메서드
+    public static Restaurant createDummy(String name, String category, Integer distance, String imageUrl) {
+        return Restaurant.builder()
+                .name(name)
+                .category(category)
+                .distance(distance)
+                .imageUrl(imageUrl)
+                .build();
     }
 
     public void incrementWinCount() {
@@ -97,5 +91,9 @@ public class Restaurant {
 
     public void incrementPlayCount() {
         this.playCount++;
+    }
+
+    public void updateDistance(Integer newDistance) {
+        this.distance = newDistance;
     }
 }
