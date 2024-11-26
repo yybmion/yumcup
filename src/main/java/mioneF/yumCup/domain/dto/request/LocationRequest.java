@@ -1,4 +1,4 @@
-package mioneF.yumCup.domain;
+package mioneF.yumCup.domain.dto.request;
 
 public record LocationRequest(
         Double latitude,

@@ -1,4 +1,4 @@
-package mioneF.yumCup.domain;
+package mioneF.yumCup.domain.entity;
 
 import lombok.Getter;
 

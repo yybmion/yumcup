@@ -4,12 +4,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import mioneF.yumCup.domain.Game;
-import mioneF.yumCup.domain.Match;
-import mioneF.yumCup.domain.MatchResponse;
+import mioneF.yumCup.domain.entity.Game;
+import mioneF.yumCup.domain.entity.Match;
+import mioneF.yumCup.domain.dto.response.MatchResponse;
 import mioneF.yumCup.domain.MatchResult;
-import mioneF.yumCup.domain.Restaurant;
-import mioneF.yumCup.domain.RestaurantResponse;
+import mioneF.yumCup.domain.entity.Restaurant;
+import mioneF.yumCup.domain.dto.response.RestaurantResponse;
 import mioneF.yumCup.repository.GameRepository;
 import mioneF.yumCup.repository.MatchRepository;
 import mioneF.yumCup.repository.RestaurantRepository;
@@ -24,7 +24,7 @@ public class GameService {
     private final RestaurantRepository restaurantRepository;
 
     @Transactional
-    public MatchResult  selectWinner(Long gameId, Long matchId, Long winnerId) {
+    public MatchResult selectWinner(Long gameId, Long matchId, Long winnerId) {
         Game game = gameRepository.findById(gameId)
                 .orElseThrow(() -> new IllegalArgumentException("Game not found"));
 
@@ -83,6 +83,7 @@ public class GameService {
                         .matchOrder(i / 2 + 1)
                         .build();
                 game.addMatch(match);
+                nextMatches.add(match);
             }
 
             matchRepository.saveAll(nextMatches);
