@@ -1,20 +1,17 @@
-import React, {useEffect, useState} from 'react';
-import axios from 'axios';
+import React from 'react';
+import {BrowserRouter as Router, Routes, Route} from 'react-router-dom';
+import Home from './components/Home';
+import WorldCupGame from './components/WorldCupGame';
 
 function App() {
-  const [msg, setMsg] = useState('')
-
-  useEffect(() => {
-    axios.get('/hello')
-        .then(response => setMsg(response.data))
-        .catch(error => console.log(error))
-  }, []);
-
-  return (
-      <div>
-        백엔드 통신 성공? : {msg}
-      </div>
-  );
+    return (
+        <Router>
+            <Routes>
+                <Route path="/" element={<Home/>}/>
+                <Route path="/worldcup" element={<WorldCupGame/>}/>
+            </Routes>
+        </Router>
+    );
 }
 
 export default App;
