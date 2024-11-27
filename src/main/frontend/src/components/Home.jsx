@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const Home = () => {
     const navigate = useNavigate();
@@ -7,7 +7,7 @@ const Home = () => {
 
     const handleStartGame = async () => {
         try {
-            setIsLoading(true); // 로딩 시작
+            setIsLoading(true);
 
             if (!("geolocation" in navigator)) {
                 alert('이 브라우저에서는 위치 기반 서비스를 사용할 수 없습니다.');
@@ -40,7 +40,7 @@ const Home = () => {
             const data = await response.json();
             navigate('/worldcup', { state: { gameData: data } });
         } catch (error) {
-            if (error.code === 1) { // PERMISSION_DENIED
+            if (error.code === 1) {
                 alert('위치 정보 접근을 허용해주세요.');
             } else {
                 alert('오류가 발생했습니다. 다시 시도해주세요.');
@@ -52,11 +52,18 @@ const Home = () => {
     return (
         <div className="min-h-screen flex flex-col">
             <nav className="p-4 sm:p-8 flex justify-between items-center">
-                <div className="text-xl sm:text-2xl font-bold tracking-wider">YUMCUP</div>
+                <Link to="/" className="text-xl sm:text-2xl font-bold tracking-wider">YUMCUP</Link>
                 <div className="flex gap-4 sm:gap-8">
-                    <a href="#about" className="text-gray-700 text-sm sm:text-base hover:text-gray-900">About</a>
-                    <a href="https://github.com/yybmion/yumcup" className="text-gray-700 text-sm sm:text-base hover:text-gray-900">Github</a>
-                    <a href="#contact" className="text-gray-700 text-sm sm:text-base hover:text-gray-900">Contact</a>
+                    <Link to="/about" className="text-gray-700 text-sm sm:text-base hover:text-gray-900">About</Link>
+                    <a
+                        href="https://github.com/yybmion/yumcup"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-gray-700 text-sm sm:text-base hover:text-gray-900"
+                    >
+                        Github
+                    </a>
+                    <Link to="/contact" className="text-gray-700 text-sm sm:text-base hover:text-gray-900">Contact</Link>
                 </div>
             </nav>
 
