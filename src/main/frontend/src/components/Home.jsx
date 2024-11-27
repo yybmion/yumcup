@@ -1,46 +1,51 @@
-import React from 'react';
-import {useNavigate} from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const Home = () => {
     const navigate = useNavigate();
+    const [isLoading, setIsLoading] = useState(false);
 
     const handleStartGame = async () => {
         try {
-            if ("geolocation" in navigator) {
-                navigator.geolocation.getCurrentPosition(
-                    async (position) => {
-                        const requestData = {
-                            latitude: position.coords.latitude,
-                            longitude: position.coords.longitude,
-                            radius: 500
-                        };
+            setIsLoading(true); // 로딩 시작
 
-                        const response = await fetch('/api/yumcup/start/location', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify(requestData)
-                        });
-
-                        if (response.ok) {
-                            const data = await response.json();
-                            // WorldCupGame 컴포넌트로 게임 데이터와 함께 이동
-                            navigate('/worldcup', {state: {gameData: data}});
-                        } else {
-                            alert('주변 음식점을 찾을 수 없습니다. 다시 시도해주세요.');
-                        }
-                    },
-                    (error) => {
-                        alert('위치 정보 접근을 허용해주세요.');
-                    }
-                );
-            } else {
+            if (!("geolocation" in navigator)) {
                 alert('이 브라우저에서는 위치 기반 서비스를 사용할 수 없습니다.');
+                setIsLoading(false);
+                return;
             }
+
+            const position = await new Promise((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(resolve, reject);
+            });
+
+            const requestData = {
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+                radius: 500
+            };
+
+            const response = await fetch('/api/yumcup/start/location', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(requestData)
+            });
+
+            if (!response.ok) {
+                throw new Error('주변 음식점을 찾을 수 없습니다.');
+            }
+
+            const data = await response.json();
+            navigate('/worldcup', { state: { gameData: data } });
         } catch (error) {
-            console.error('Error starting game:', error);
-            alert('게임 시작 중 오류가 발생했습니다.');
+            if (error.code === 1) { // PERMISSION_DENIED
+                alert('위치 정보 접근을 허용해주세요.');
+            } else {
+                alert('오류가 발생했습니다. 다시 시도해주세요.');
+            }
+            setIsLoading(false);
         }
     };
 
@@ -50,8 +55,7 @@ const Home = () => {
                 <div className="text-xl sm:text-2xl font-bold tracking-wider">YUMCUP</div>
                 <div className="flex gap-4 sm:gap-8">
                     <a href="#about" className="text-gray-700 text-sm sm:text-base hover:text-gray-900">About</a>
-                    <a href="https://github.com/yybmion"
-                       className="text-gray-700 text-sm sm:text-base hover:text-gray-900">GitHub</a>
+                    <a href="https://github.com/yybmion/yumcup" className="text-gray-700 text-sm sm:text-base hover:text-gray-900">Github</a>
                     <a href="#contact" className="text-gray-700 text-sm sm:text-base hover:text-gray-900">Contact</a>
                 </div>
             </nav>
@@ -60,16 +64,26 @@ const Home = () => {
                 <div className="text-center max-w-2xl">
                     <h1 className="text-4xl sm:text-5xl font-bold mb-4 sm:mb-6">YUMCUP</h1>
                     <p className="text-base sm:text-lg text-gray-600 leading-relaxed mb-6 sm:mb-8">
-                        내 주변의 맛있는 발견<br/>
+                        내 주변의 맛있는 발견<br />
                         취향저격 맛집 찾기의 새로운 재미
                     </p>
                     <button
                         onClick={handleStartGame}
-                        className="bg-gray-900 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg
-                                 text-base sm:text-lg font-medium hover:bg-gray-800
-                                 transition-colors duration-200"
+                        disabled={isLoading}
+                        className={`relative bg-gray-900 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg 
+                                 text-base sm:text-lg font-medium hover:bg-gray-800 
+                                 transition-colors duration-200 ${isLoading ? 'opacity-75 cursor-not-allowed' : ''}`}
                     >
-                        시작하기
+                        {isLoading ? (
+                            <>
+                                <span className="opacity-0">시작하기</span>
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                                </div>
+                            </>
+                        ) : (
+                            '시작하기'
+                        )}
                     </button>
                 </div>
             </main>
