@@ -10,6 +10,13 @@ const WorldCupGame = () => {
     const [winner, setWinner] = useState(null);
     const [error, setError] = useState(null);  // 에러 상태 추가
 
+    const getProgressPercentage = () => {
+        // 현재 라운드의 전체 매치 수는 round/2
+        // 예) 16강 -> 8경기, 8강 -> 4경기, 4강 -> 2경기
+        const totalMatchesInRound = currentMatch.round / 2;
+        return (currentRound / totalMatchesInRound) * 100;
+    };
+
     // 위치 기반 게임 시작
     const startLocationBasedGame = async (position) => {
         try {
@@ -207,31 +214,26 @@ const WorldCupGame = () => {
                 </p>
             </div>
 
-            {/* 대결 구역 - 모바일에서는 세로로 배치 */}
+            {/* 대결 구역 */}
             <div className="flex flex-col sm:flex-row justify-between items-center gap-4 sm:gap-8">
-                {/* 왼쪽 음식점 */}
                 <RestaurantCard
                     restaurant={currentMatch.restaurant1}
                     onClick={() => handleSelect(currentMatch.restaurant1)}
                 />
-
-                {/* VS 표시 - 모바일에서는 작게 표시 */}
                 <div className="text-2xl sm:text-4xl font-bold text-red-500 py-2 sm:px-4">
                     VS
                 </div>
-
-                {/* 오른쪽 음식점 */}
                 <RestaurantCard
                     restaurant={currentMatch.restaurant2}
                     onClick={() => handleSelect(currentMatch.restaurant2)}
                 />
             </div>
 
-            {/* 진행 상황 바 */}
+            {/* 진행 상황 바 - 수정된 부분 */}
             <div className="mt-4 sm:mt-8 bg-gray-200 rounded-full h-2">
                 <div
                     className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                    style={{width: `${(currentRound / (round / 2)) * 100}%`}}
+                    style={{width: `${getProgressPercentage()}%`}}
                 />
             </div>
         </div>
