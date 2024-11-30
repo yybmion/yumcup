@@ -1,11 +1,65 @@
+spring:
+  profiles:
+    active: local
+    group:
+      local: local,common
+      blue: blue,common
+      green: green,common
+
+server:
+  env: blue
+
+---
+
+spring:
+  config:
+    activate:
+      on-profile: local
+
+server:
+  port: 8080
+  serverAddress: localhost
+
+serverName: local_server
+
+---
+
+spring:
+  config:
+    activate:
+      on-profile: blue
+
+server:
+  port: 8080
+  serverAddress: 13.124.233.39
+
+serverName: blue_server
+
+---
+
+spring:
+  config:
+    activate:
+      on-profile: green
+
+server:
+  port: 8081
+  serverAddress: 13.124.233.39
+
+serverName: green_server
+
+---
+
 server:
   servlet:
     encoding:
       charset: utf-8
       force: true
-  port: 8080
 
 spring:
+  config:
+    activate:
+      on-profile: common
   datasource:
     url: jdbc:mysql://${MYSQL_HOST}:${MYSQL_PORT}/${MYSQL_DB}?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=Asia/Seoul
     username: ${MYSQL_USER}
