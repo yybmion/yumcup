@@ -3,8 +3,8 @@ spring:
     active: local
     group:
       local: local,common
-      blue: blue,common
-      green: green,common
+      blue: blue,common,secret
+      green: green,common,secret
 
 server:
   env: blue
