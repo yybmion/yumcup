@@ -77,7 +77,7 @@ spring:
     open-in-view: false
 
   redis:
-    host: localhost  # Redis 서버 호스트
+    host: 127.0.0.1  # Redis 서버 호스트
     port: 6379      # Redis 서버 포트
     cache:
       type: redis
