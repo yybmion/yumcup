@@ -1,11 +1,65 @@
+spring:
+  profiles:
+    active: local
+    group:
+      local: local,common
+      blue: blue,common,secret
+      green: green,common,secret
+
+server:
+  env: blue
+
+---
+
+spring:
+  config:
+    activate:
+      on-profile: local
+
+server:
+  port: 8080
+  serverAddress: localhost
+
+serverName: local_server
+
+---
+
+spring:
+  config:
+    activate:
+      on-profile: blue
+
+server:
+  port: 8080
+  serverAddress: 13.124.233.39
+
+serverName: blue_server
+
+---
+
+spring:
+  config:
+    activate:
+      on-profile: green
+
+server:
+  port: 8081
+  serverAddress: 13.124.233.39
+
+serverName: green_server
+
+---
+
 server:
   servlet:
     encoding:
       charset: utf-8
       force: true
-  port: 8080
 
 spring:
+  config:
+    activate:
+      on-profile: common
   datasource:
     url: jdbc:mysql://${MYSQL_HOST}:${MYSQL_PORT}/${MYSQL_DB}?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=Asia/Seoul
     username: ${MYSQL_USER}
@@ -23,7 +77,7 @@ spring:
     open-in-view: false
 
   redis:
-    host: localhost  # Redis 서버 호스트
+    host: 127.0.0.1  # Redis 서버 호스트
     port: 6379      # Redis 서버 포트
     cache:
       type: redis
