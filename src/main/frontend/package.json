@@ -43,6 +43,7 @@
   },
   "devDependencies": {
     "autoprefixer": "^10.4.20",
+    "cp-cli": "^2.0.0",
     "cross-env": "^7.0.3",
     "postcss": "^8.4.49",
     "rimraf": "^6.0.1",
