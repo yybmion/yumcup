@@ -43,14 +43,32 @@ public class GooglePlaceCache implements Serializable {
     }
 
     // Getter methods
-    public String id() { return id; }
-    public Double rating() { return rating; }
-    public Integer ratingCount() { return ratingCount; }
-    public String photoUrl() { return photoUrl; }
-    public LocalDateTime cachedAt() { return cachedAt; }
-    public String name() { return name; }
+    public String id() {
+        return id;
+    }
 
-    public static GooglePlaceCache from(String kakaoId, String name, GooglePlaceResponse.GooglePlace place, String photoUrl) {
+    public Double rating() {
+        return rating;
+    }
+
+    public Integer ratingCount() {
+        return ratingCount;
+    }
+
+    public String photoUrl() {
+        return photoUrl;
+    }
+
+    public LocalDateTime cachedAt() {
+        return cachedAt;
+    }
+
+    public String name() {
+        return name;
+    }
+
+    public static GooglePlaceCache from(String kakaoId, String name, GooglePlaceResponse.GooglePlace place,
+                                        String photoUrl) {
         return new GooglePlaceCache(
                 kakaoId,
                 place.rating(),
