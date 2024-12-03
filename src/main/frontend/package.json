@@ -18,7 +18,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build && npm run copy-files",
+    "build": "react-scripts build",
     "copy-files": "rimraf ../resources/static/* && cp-cli build ../resources/static",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
@@ -43,10 +43,8 @@
   },
   "devDependencies": {
     "autoprefixer": "^10.4.20",
-    "cp-cli": "^2.0.0",
     "cross-env": "^7.0.3",
     "postcss": "^8.4.49",
-    "rimraf": "^6.0.1",
     "tailwindcss": "^3.4.15"
   }
 }
