@@ -70,7 +70,7 @@ const Home = () => {
             body: JSON.stringify({latitude, longitude, radius})
         });
 
-        console.log('API URL:', process.env.REACT_API_URL);
+        console.log('API URL:', process.env.REACT_APP_API_URL);
 
         if (!response.ok) {
             throw new Error('주변 음식점을 찾을 수 없습니다.');

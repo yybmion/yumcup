@@ -22,5 +22,6 @@ public record KakaoPlaceResponse(
     public record Menu(
             String name,
             String price
-    ) {}
+    ) {
+    }
 }
