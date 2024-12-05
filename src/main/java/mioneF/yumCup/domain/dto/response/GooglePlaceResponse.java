@@ -19,6 +19,7 @@ public record GooglePlaceResponse(
                 String photo_reference,
                 Integer height,
                 Integer width
-        ) {}
+        ) {
+        }
     }
 }
