@@ -62,21 +62,40 @@ const Home = () => {
 
     // 6. API 호출 로직 분리
     const fetchNearbyRestaurants = async (latitude, longitude, radius) => {
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/api/yumcup/start/location`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({latitude, longitude, radius})
-        });
-
         console.log('API URL:', process.env.REACT_APP_API_URL);
+        console.log('Request Payload:', { latitude, longitude, radius });
 
-        if (!response.ok) {
-            throw new Error('주변 음식점을 찾을 수 없습니다.');
+        try {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/api/yumcup/start/location`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({latitude, longitude, radius})
+            });
+
+            console.log('Response status:', response.status);
+            console.log('Response headers:', Object.fromEntries(response.headers));
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Error response:', errorText);
+                throw new Error('주변 음식점을 찾을 수 없습니다.');
+            }
+
+            const data = await response.json();
+            console.log('Response data:', data);
+            return data;
+
+        } catch (error) {
+            console.error('Fetch error:', error);
+            console.error('Error details:', {
+                name: error.name,
+                message: error.message,
+                stack: error.stack
+            });
+            throw error;
         }
-
-        return response.json();
     };
 
     const handleStartGame = async () => {

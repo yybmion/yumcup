@@ -11,7 +11,8 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addMapping("/**")
                 .allowedOrigins(
                         "https://yumcup.store",      // 프론트엔드 도메인
-                        "http://localhost:3000"       // 개발 환경
+                        "http://localhost:3000",       // 개발 환경
+                        "https://yumcup-omega.vercel.app/"
                 )
                 .allowedMethods("GET", "POST", "OPTIONS")  // OPTIONS 메서드 추가
                 .allowedHeaders("*")
