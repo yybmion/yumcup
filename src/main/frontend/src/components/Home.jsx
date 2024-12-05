@@ -62,7 +62,7 @@ const Home = () => {
 
     // 6. API 호출 로직 분리
     const fetchNearbyRestaurants = async (latitude, longitude, radius) => {
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/api/yumcup/start/location`, {
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/yumcup/start/location`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
