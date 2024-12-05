@@ -28,7 +28,7 @@ const WorldCupGame = () => {
             };
             console.log('Sending location data:', requestData);  // 요청 데이터 로깅
 
-            const response = await fetch(`${process.env.REACT_APP_API_URL}/api/yumcup/start/location`, {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/yumcup/start/location`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -100,7 +100,7 @@ const WorldCupGame = () => {
 
     const handleSelect = async (selectedRestaurant) => {
         try {
-            const response = await fetch(`${process.env.REACT_APP_API_URL}/api/yumcup/select`, {
+            const response = await fetch(`${process.env.REACT_APP_API_URL}/yumcup/select`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
