@@ -13,8 +13,8 @@ public record RestaurantResponse(
         String phone,
         String placeUrl,
         String priceLevelText,     // price_level을 텍스트로 변환한 값
-        String isOpenNow,         // 현재 영업 여부
-        Boolean weekdayText,        // 요일별 영업시간
+        Boolean isOpenNow,         // 현재 영업 여부
+        String weekdayText,        // 요일별 영업시간
         String photoUrl,          // mainPhotoUrl -> photoUrl로 변경
         Double rating,
         Integer ratingCount      // 평점 개수 추가
@@ -29,13 +29,12 @@ public record RestaurantResponse(
                 restaurant.getRoadAddress(),
                 restaurant.getPhone(),
                 restaurant.getPlaceUrl(),
-                restaurant.getPhotoUrl(),        // mainPhotoUrl -> photoUrl
-                PriceLevel.getDescription(restaurant.getPriceLevel()),
+                PriceLevel.getDescription(restaurant.getPriceLevel()),  // priceLevelText
                 restaurant.getIsOpenNow(),
                 restaurant.getWeekdayText(),
+                restaurant.getPhotoUrl(),           // photoUrl
                 restaurant.getRating(),
-                restaurant.getRatingCount()     // 평점 개수
-
+                restaurant.getRatingCount()
         );
     }
 }
