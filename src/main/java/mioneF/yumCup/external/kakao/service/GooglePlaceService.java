@@ -67,15 +67,24 @@ public class GooglePlaceService {
     }
 
     private GooglePlaceResponse createResponseFromCache(GooglePlaceCache cache) {
+        var photo = cache.photoUrl() != null ?
+                List.of(new GooglePlaceResponse.GooglePlace.Photo(cache.photoUrl(), null, null)) :
+                null;
+
+        var openingHours = new GooglePlaceResponse.GooglePlace.OpeningHours(
+                cache.isOpenNow(),
+                cache.weekdayText() != null ? List.of(cache.weekdayText()) : null
+        );
+
         return new GooglePlaceResponse(
                 List.of(new GooglePlaceResponse.GooglePlace(
                         cache.id(),
                         cache.name(),
                         cache.rating(),
                         cache.ratingCount(),
-                        cache.photoUrl() != null ?
-                                List.of(new GooglePlaceResponse.GooglePlace.Photo(cache.photoUrl(), null, null))
-                                : null
+                        photo,
+                        cache.priceLevel(),
+                        openingHours
                 )),
                 "OK"
         );
@@ -111,13 +120,23 @@ public class GooglePlaceService {
             photoUrl = generatePhotoUrl(place.photos().get(0).photo_reference());
         }
 
+        String weekdayText = null;
+        Boolean isOpenNow = null;
+        if (place.opening_hours() != null) {
+            weekdayText = String.join("\n", place.opening_hours().weekday_text());
+            isOpenNow = place.opening_hours().open_now();
+        }
+
         GooglePlaceCache cacheEntry = new GooglePlaceCache(
                 cacheKey,
                 place.rating(),
                 place.user_ratings_total(),
                 photoUrl,
                 LocalDateTime.now(),
-                name
+                name,
+                place.price_level(),
+                isOpenNow,
+                weekdayText
         );
 
         try {
@@ -131,11 +150,14 @@ public class GooglePlaceService {
     private void cacheEmptyResult(String cacheKey, String name) {
         GooglePlaceCache cacheEntry = new GooglePlaceCache(
                 cacheKey,
-                0.0,           // 기본 평점
-                0,             // 기본 평점 개수
-                null,          // 사진 없음
+                0.0,    // 기본 평점
+                0,      // 기본 평점 개수
+                null,   // 사진 없음
                 LocalDateTime.now(),
-                name
+                name,
+                null,   // 가격 수준 없음
+                null,   // 영업 여부 없음
+                null    // 영업 시간 없음
         );
 
         try {
@@ -154,7 +176,7 @@ public class GooglePlaceService {
                             .queryParam("input", name)
                             .queryParam("inputtype", "textquery")
                             .queryParam("locationbias", String.format("circle:100@%f,%f", lat, lng))
-                            .queryParam("fields", "place_id,name,rating,user_ratings_total,photos")
+                            .queryParam("fields", "place_id,name,rating,user_ratings_total,photos,price_level,opening_hours")
                             .queryParam("key", googleApiKey)
                             .build())
                     .retrieve()

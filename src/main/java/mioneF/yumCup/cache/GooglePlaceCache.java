@@ -25,6 +25,12 @@ public class GooglePlaceCache implements Serializable {
     private final LocalDateTime cachedAt;
     @JsonProperty
     private final String name;
+    @JsonProperty
+    private final Integer priceLevel;
+    @JsonProperty
+    private final Boolean isOpenNow;
+    @JsonProperty
+    private final String weekdayText;
 
     @JsonCreator
     public GooglePlaceCache(
@@ -33,13 +39,19 @@ public class GooglePlaceCache implements Serializable {
             @JsonProperty("ratingCount") Integer ratingCount,
             @JsonProperty("photoUrl") String photoUrl,
             @JsonProperty("cachedAt") LocalDateTime cachedAt,
-            @JsonProperty("name") String name) {
+            @JsonProperty("name") String name,
+            @JsonProperty("priceLevel") Integer priceLevel,
+            @JsonProperty("isOpenNow") Boolean isOpenNow,
+            @JsonProperty("weekdayText") String weekdayText) {
         this.id = id;
         this.rating = rating;
         this.ratingCount = ratingCount;
         this.photoUrl = photoUrl;
         this.cachedAt = cachedAt;
         this.name = name;
+        this.priceLevel = priceLevel;
+        this.isOpenNow = isOpenNow;
+        this.weekdayText = weekdayText;
     }
 
     // Getter methods
@@ -67,15 +79,37 @@ public class GooglePlaceCache implements Serializable {
         return name;
     }
 
+    public Integer priceLevel() {
+        return priceLevel;
+    }
+
+    public Boolean isOpenNow() {
+        return isOpenNow;
+    }
+
+    public String weekdayText() {
+        return weekdayText;
+    }
+
     public static GooglePlaceCache from(String kakaoId, String name, GooglePlaceResponse.GooglePlace place,
                                         String photoUrl) {
+        String weekdayText = null;
+        Boolean isOpen = null;
+        if (place.opening_hours() != null) {
+            weekdayText = String.join("\n", place.opening_hours().weekday_text());
+            isOpen = place.opening_hours().open_now();
+        }
+
         return new GooglePlaceCache(
                 kakaoId,
                 place.rating(),
                 place.user_ratings_total(),
                 photoUrl,
                 LocalDateTime.now(),
-                name
+                name,
+                place.price_level(),
+                isOpen,
+                weekdayText
         );
     }
 }

@@ -1,5 +1,6 @@
 package mioneF.yumCup.domain.dto.response;
 
+import mioneF.yumCup.domain.entity.PriceLevel;
 import mioneF.yumCup.domain.entity.Restaurant;
 
 public record RestaurantResponse(
@@ -11,11 +12,12 @@ public record RestaurantResponse(
         String roadAddress,
         String phone,
         String placeUrl,
+        String priceLevelText,     // price_level을 텍스트로 변환한 값
+        String isOpenNow,         // 현재 영업 여부
+        Boolean weekdayText,        // 요일별 영업시간
         String photoUrl,          // mainPhotoUrl -> photoUrl로 변경
-        String openingHours,
         Double rating,
-        Integer ratingCount,      // 평점 개수 추가
-        String priceRange
+        Integer ratingCount      // 평점 개수 추가
 ) {
     public static RestaurantResponse from(Restaurant restaurant) {
         return new RestaurantResponse(
@@ -28,10 +30,12 @@ public record RestaurantResponse(
                 restaurant.getPhone(),
                 restaurant.getPlaceUrl(),
                 restaurant.getPhotoUrl(),        // mainPhotoUrl -> photoUrl
-                restaurant.getOpeningHours(),
+                PriceLevel.getDescription(restaurant.getPriceLevel()),
+                restaurant.getIsOpenNow(),
+                restaurant.getWeekdayText(),
                 restaurant.getRating(),
-                restaurant.getRatingCount(),     // 평점 개수
-                restaurant.getPriceRange()
+                restaurant.getRatingCount()     // 평점 개수
+
         );
     }
 }

@@ -117,11 +117,21 @@ public class KakaoMapRestaurantService {
                     );
                 }
 
+                // opening_hours 처리
+                String weekdayText = null;
+                Boolean isOpenNow = null;
+                if (place.opening_hours() != null) {
+                    weekdayText = String.join("\n", place.opening_hours().weekday_text());
+                    isOpenNow = place.opening_hours().open_now();
+                }
+
                 restaurant = restaurant.toBuilder()
                         .rating(place.rating())
                         .ratingCount(place.user_ratings_total())
                         .photoUrl(photoUrl)
-                        .priceRange("만원-2만원")
+                        .priceLevel(place.price_level())  // priceRange 대신 priceLevel 사용
+                        .weekdayText(weekdayText)         // 영업시간 정보 추가
+                        .isOpenNow(isOpenNow)             // 현재 영업 여부 추가
                         .build();
             }
         } catch (Exception e) {
