@@ -12,7 +12,9 @@ public record GooglePlaceResponse(
             String name,
             Double rating,
             Integer user_ratings_total,
-            List<Photo> photos
+            List<Photo> photos,
+            Integer price_level,
+            OpeningHours opening_hours
     ) {
         @JsonIgnoreProperties(ignoreUnknown = true)
         public record Photo(
@@ -21,5 +23,11 @@ public record GooglePlaceResponse(
                 Integer width
         ) {
         }
+
+        @JsonIgnoreProperties(ignoreUnknown = true)
+        public record OpeningHours(
+                Boolean open_now,
+                List<String> weekday_text
+        ) {}
     }
 }

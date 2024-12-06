@@ -35,14 +35,20 @@ public class Restaurant {
     private String phone;
     private String placeUrl;
     private String openingHours;
-    private String priceRange;      // 임시로 "만원-2만원" 고정값 사용
 
     // 구글 Places API 정보
     private Double rating;          // 구글 평점
     private Integer ratingCount;    // 구글 평점 개수
 
+    private Integer priceLevel;
+
     @Column(columnDefinition = "TEXT")
     private String photoUrl;        // 구글 이미지 URL
+
+    private Boolean isOpenNow;
+
+    @Column(columnDefinition = "TEXT")
+    private String weekdayText;
 
     @Builder(toBuilder = true)
     public Restaurant(
@@ -56,8 +62,9 @@ public class Restaurant {
             String roadAddress,
             String phone,
             String placeUrl,
-            String openingHours,
-            String priceRange,
+            Integer priceLevel,
+            Boolean isOpenNow,
+            String weekdayText,
             Double rating,
             Integer ratingCount,
             String photoUrl
@@ -72,21 +79,14 @@ public class Restaurant {
         this.roadAddress = roadAddress;
         this.phone = phone;
         this.placeUrl = placeUrl;
-        this.openingHours = openingHours;
-        this.priceRange = priceRange;
+        this.priceLevel = priceLevel;
+        this.isOpenNow = isOpenNow;
+        this.weekdayText = weekdayText;
         this.rating = rating;
         this.ratingCount = ratingCount;
         this.photoUrl = photoUrl;
         this.winCount = 0;
         this.playCount = 0;
-    }
-
-    // 카카오 API 정보로 업데이트
-    public void updateWithKakaoDetail(KakaoPlaceResponse detail) {
-        if (detail != null) {
-            this.openingHours = detail.opening_hours();
-            this.priceRange = "만원-2만원";  // 임시 고정값
-        }
     }
 
     // KakapMapGameService에서 사용
@@ -95,6 +95,9 @@ public class Restaurant {
         this.rating = newInfo.getRating();
         this.ratingCount = newInfo.getRatingCount();
         this.photoUrl = newInfo.getPhotoUrl();
+        this.priceLevel = newInfo.getPriceLevel();
+        this.isOpenNow = newInfo.getIsOpenNow();
+        this.weekdayText = newInfo.getWeekdayText();
     }
 
     // 게임 관련 메서드
