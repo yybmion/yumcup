@@ -10,13 +10,15 @@ public class WebConfig implements WebMvcConfigurer {
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
                 .allowedOrigins(
-                        "https://yumcup.store",      // 프론트엔드 도메인
-                        "http://localhost:3000",       // 개발 환경
-                        "https://yumcup-omega.vercel.app/"
+                        "https://yumcup.store",
+                        "https://www.yumcup.store",
+                        "http://localhost:3000",
+                        "https://yumcup-omega.vercel.app"  // 끝의 슬래시 제거
                 )
-                .allowedMethods("GET", "POST", "OPTIONS")  // OPTIONS 메서드 추가
+                .allowedMethods("GET", "POST", "OPTIONS")
                 .allowedHeaders("*")
-                .exposedHeaders("*")              // 추가
-                .allowCredentials(true);
+                .exposedHeaders("*")
+                .allowCredentials(true)
+                .maxAge(3600); // preflight 캐시 시간 설정
     }
 }

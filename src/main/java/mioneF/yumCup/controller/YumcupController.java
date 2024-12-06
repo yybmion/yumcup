@@ -18,7 +18,6 @@ import org.springframework.web.bind.annotation.RestController;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@CrossOrigin(origins = {"https://yumcup.store", "http://localhost:3000"})
 @RequestMapping("/api/yumcup")
 public class YumcupController {
     private final KakapMapGameService kakapMapGameService;
