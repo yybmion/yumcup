@@ -22,7 +22,7 @@ const WorldCupGame = () => {
             const requestData = {
                 latitude: position.coords.latitude,
                 longitude: position.coords.longitude,
-                radius: 500
+                radius: 1000
             };
             console.log('Sending location data:', requestData);
 
@@ -128,9 +128,13 @@ const WorldCupGame = () => {
     if (isLoading || !currentMatch) {
         return (
             <div className="min-h-screen flex flex-col">
-                <div className="flex-1 flex justify-center items-center">Loading...</div>
-                <div className="w-full max-w-[1024px] mx-auto">
-                    <GoogleAd />
+                <div className="flex-1 flex justify-center items-center min-h-[calc(100vh-200px)]">
+                    Loading...
+                </div>
+                <div>
+                    <div className="w-full max-w-[1024px] mx-auto">
+                        <GoogleAd />
+                    </div>
                 </div>
             </div>
         );
@@ -139,14 +143,16 @@ const WorldCupGame = () => {
     if (error) {
         return (
             <div className="min-h-screen flex flex-col">
-                <div className="flex-1 flex flex-col justify-center items-center">
+                <div className="flex-1 flex flex-col justify-center items-center min-h-[calc(100vh-200px)]">
                     <p className="text-red-500 mb-4">{error}</p>
                     <button onClick={startGame} className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition-colors">
                         다시 시도
                     </button>
                 </div>
-                <div className="w-full max-w-[1024px] mx-auto">
-                    <GoogleAd />
+                <div>
+                    <div className="w-full max-w-[1024px] mx-auto">
+                        <GoogleAd />
+                    </div>
                 </div>
             </div>
         );
@@ -155,7 +161,7 @@ const WorldCupGame = () => {
     if (winner) {
         return (
             <div className="min-h-screen flex flex-col">
-                <div className="flex-1 max-w-4xl mx-auto p-8">
+                <div className="flex-1 max-w-4xl mx-auto p-8 min-h-[calc(100vh-200px)]">
                     <div className="text-center mb-8">
                         <h1 className="text-2xl font-bold mb-2">🎉 우승 음식점 🎉</h1>
                     </div>
@@ -204,8 +210,10 @@ const WorldCupGame = () => {
                         </div>
                     </div>
                 </div>
-                <div className="w-full max-w-[1024px] mx-auto">
-                    <GoogleAd />
+                <div>
+                    <div className="w-full max-w-[1024px] mx-auto">
+                        <GoogleAd />
+                    </div>
                 </div>
             </div>
         );
@@ -213,7 +221,7 @@ const WorldCupGame = () => {
 
     return (
         <div className="min-h-screen flex flex-col">
-            <div className="flex-1 max-w-4xl mx-auto p-4 sm:p-8">
+            <div className="flex-1 max-w-4xl mx-auto p-4 sm:p-8 min-h-[calc(100vh-200px)]">
                 <div className="text-center mb-4 sm:mb-8">
                     <h1 className="text-xl sm:text-2xl font-bold mb-2">음식점 월드컵</h1>
                     <p className="text-base sm:text-lg text-gray-600">
@@ -242,8 +250,10 @@ const WorldCupGame = () => {
                     />
                 </div>
             </div>
-            <div className="w-full max-w-[1024px] mx-auto">
-                <GoogleAd />
+            <div>
+                <div className="w-full max-w-[1024px] mx-auto">
+                    <GoogleAd />
+                </div>
             </div>
         </div>
     );

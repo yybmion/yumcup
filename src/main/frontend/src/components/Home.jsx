@@ -130,7 +130,7 @@ const Home = () => {
         <div className="min-h-screen flex flex-col">
             <Navigation/>
 
-            <main className="flex-1 flex justify-center items-center p-4 sm:p-8">
+            <main className="flex-1 flex justify-center items-center p-4 sm:p-8 min-h-[calc(100vh-200px)]">
                 <div className={mainContentStyle}>
                     <h1 className="text-4xl sm:text-5xl font-bold mb-4 sm:mb-6">YUMCUP</h1>
                     <p className="text-base sm:text-lg text-gray-600 leading-relaxed mb-6 sm:mb-8">
@@ -149,13 +149,15 @@ const Home = () => {
                 </div>
             </main>
 
-            <div className="w-full max-w-[1024px] mx-auto">
-                <GoogleAd />
-            </div>
+            <div>
+                <div className="w-full max-w-[1024px] mx-auto">
+                    <GoogleAd />
+                </div>
 
-            <footer className="p-4 sm:p-8 text-center text-sm text-gray-500">
-                <p>© 2024 YUMCUP. All rights reserved.</p>
-            </footer>
+                <footer className="p-4 sm:p-8 text-center text-sm text-gray-500">
+                    <p>© 2024 YUMCUP. All rights reserved.</p>
+                </footer>
+            </div>
         </div>
     );
 };
