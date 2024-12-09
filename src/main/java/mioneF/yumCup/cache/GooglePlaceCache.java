@@ -27,7 +27,7 @@ public class GooglePlaceCache implements Serializable {
     private final String name;
     @JsonProperty
     private final Integer priceLevel;
-    @JsonProperty
+    @JsonProperty("openNow")
     private final Boolean isOpenNow;
     @JsonProperty
     private final String weekdayText;
@@ -41,7 +41,7 @@ public class GooglePlaceCache implements Serializable {
             @JsonProperty("cachedAt") LocalDateTime cachedAt,
             @JsonProperty("name") String name,
             @JsonProperty("priceLevel") Integer priceLevel,
-            @JsonProperty("isOpenNow") Boolean isOpenNow,
+            @JsonProperty("isOpenNow") Boolean openNow,
             @JsonProperty("weekdayText") String weekdayText) {
         this.id = id;
         this.rating = rating;
@@ -50,7 +50,7 @@ public class GooglePlaceCache implements Serializable {
         this.cachedAt = cachedAt;
         this.name = name;
         this.priceLevel = priceLevel;
-        this.isOpenNow = isOpenNow;
+        this.isOpenNow = openNow;
         this.weekdayText = weekdayText;
     }
 

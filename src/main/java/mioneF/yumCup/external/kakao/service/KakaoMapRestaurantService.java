@@ -121,7 +121,9 @@ public class KakaoMapRestaurantService {
                 String weekdayText = null;
                 Boolean isOpenNow = null;
                 if (place.opening_hours() != null) {
-                    weekdayText = String.join("\n", place.opening_hours().weekday_text());
+                    if (place.opening_hours().weekday_text() != null && !place.opening_hours().weekday_text().isEmpty()) {
+                        weekdayText = String.join("\n", place.opening_hours().weekday_text());
+                    }
                     isOpenNow = place.opening_hours().open_now();
                 }
 

@@ -120,10 +120,13 @@ public class GooglePlaceService {
             photoUrl = generatePhotoUrl(place.photos().get(0).photo_reference());
         }
 
+        // 영업시간 정보 처리
         String weekdayText = null;
         Boolean isOpenNow = null;
         if (place.opening_hours() != null) {
-            weekdayText = String.join("\n", place.opening_hours().weekday_text());
+            if (place.opening_hours().weekday_text() != null) {
+                weekdayText = String.join("\n", place.opening_hours().weekday_text());
+            }
             isOpenNow = place.opening_hours().open_now();
         }
 
@@ -134,9 +137,9 @@ public class GooglePlaceService {
                 photoUrl,
                 LocalDateTime.now(),
                 name,
-                place.price_level(),
-                isOpenNow,
-                weekdayText
+                place.price_level(),      // 가격대 레벨 추가
+                isOpenNow,                // 현재 영업 여부 추가
+                weekdayText               // 요일별 영업시간 추가
         );
 
         try {
