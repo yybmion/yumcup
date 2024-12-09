@@ -1,5 +1,6 @@
 import React, {useState, lazy, Suspense} from 'react';
 import {Link, useNavigate} from 'react-router-dom';
+import GoogleAd from '../components/GoogleAd';
 
 // 1. 사전 연결 설정
 const preconnectUrls = [
@@ -147,6 +148,10 @@ const Home = () => {
                     </button>
                 </div>
             </main>
+
+            <div className="w-full max-w-[1024px] mx-auto">
+                <GoogleAd />
+            </div>
 
             <footer className="p-4 sm:p-8 text-center text-sm text-gray-500">
                 <p>© 2024 YUMCUP. All rights reserved.</p>
