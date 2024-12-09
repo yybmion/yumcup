@@ -106,7 +106,7 @@ const Home = () => {
             const data = await fetchNearbyRestaurants(
                 position.coords.latitude,
                 position.coords.longitude,
-                500
+                1000
             );
             navigate('/worldcup', {state: {gameData: data}});
         } catch (error) {
