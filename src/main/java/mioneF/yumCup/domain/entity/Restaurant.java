@@ -34,7 +34,6 @@ public class Restaurant {
     private String roadAddress;
     private String phone;
     private String placeUrl;
-    private String openingHours;
 
     // 구글 Places API 정보
     private Double rating;          // 구글 평점
@@ -46,6 +45,7 @@ public class Restaurant {
     private String photoUrl;        // 구글 이미지 URL
 
     private Boolean isOpenNow;
+    private String openingHours;
 
     @Column(columnDefinition = "TEXT")
     private String weekdayText;
@@ -55,6 +55,8 @@ public class Restaurant {
             String name,
             String category,
             Integer distance,
+            Integer winCount,
+            Integer playCount,
             String kakaoId,
             Double latitude,
             Double longitude,
@@ -62,16 +64,19 @@ public class Restaurant {
             String roadAddress,
             String phone,
             String placeUrl,
-            Integer priceLevel,
-            Boolean isOpenNow,
-            String weekdayText,
             Double rating,
             Integer ratingCount,
-            String photoUrl
+            Integer priceLevel,
+            String photoUrl,
+            Boolean isOpenNow,
+            String openingHours,
+            String weekdayText
     ) {
         this.name = name;
         this.category = category;
         this.distance = distance;
+        this.winCount = winCount != null ? winCount : 0;
+        this.playCount = playCount != null ? playCount : 0;
         this.kakaoId = kakaoId;
         this.latitude = latitude;
         this.longitude = longitude;
@@ -79,14 +84,13 @@ public class Restaurant {
         this.roadAddress = roadAddress;
         this.phone = phone;
         this.placeUrl = placeUrl;
-        this.priceLevel = priceLevel;
-        this.isOpenNow = isOpenNow;
-        this.weekdayText = weekdayText;
         this.rating = rating;
         this.ratingCount = ratingCount;
+        this.priceLevel = priceLevel;
         this.photoUrl = photoUrl;
-        this.winCount = 0;
-        this.playCount = 0;
+        this.isOpenNow = isOpenNow;
+        this.openingHours = openingHours;
+        this.weekdayText = weekdayText;
     }
 
     // KakapMapGameService에서 사용
@@ -97,6 +101,7 @@ public class Restaurant {
         this.photoUrl = newInfo.getPhotoUrl();
         this.priceLevel = newInfo.getPriceLevel();
         this.isOpenNow = newInfo.getIsOpenNow();
+        this.openingHours = newInfo.getOpeningHours();
         this.weekdayText = newInfo.getWeekdayText();
     }
 

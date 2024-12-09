@@ -12,12 +12,12 @@ public record RestaurantResponse(
         String roadAddress,
         String phone,
         String placeUrl,
-        String priceLevelText,     // price_level을 텍스트로 변환한 값
-        Boolean isOpenNow,         // 현재 영업 여부
-        String weekdayText,        // 요일별 영업시간
-        String photoUrl,          // mainPhotoUrl -> photoUrl로 변경
+        String photoUrl,
         Double rating,
-        Integer ratingCount      // 평점 개수 추가
+        Integer ratingCount,      // 평점 개수 추가
+        String priceLevel,
+        String weekdayText,
+        Boolean isOpenNow
 ) {
     public static RestaurantResponse from(Restaurant restaurant) {
         return new RestaurantResponse(
@@ -29,12 +29,12 @@ public record RestaurantResponse(
                 restaurant.getRoadAddress(),
                 restaurant.getPhone(),
                 restaurant.getPlaceUrl(),
-                PriceLevel.getDescription(restaurant.getPriceLevel()),  // priceLevelText
-                restaurant.getIsOpenNow(),
-                restaurant.getWeekdayText(),
                 restaurant.getPhotoUrl(),           // photoUrl
                 restaurant.getRating(),
-                restaurant.getRatingCount()
+                restaurant.getRatingCount(),
+                PriceLevel.getDescription(restaurant.getPriceLevel()),
+                restaurant.getOpeningHours(),
+                restaurant.getIsOpenNow()
         );
     }
 }
