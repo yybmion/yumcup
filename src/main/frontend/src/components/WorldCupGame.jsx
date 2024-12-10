@@ -131,11 +131,6 @@ const WorldCupGame = () => {
                 <div className="flex-1 flex justify-center items-center min-h-[calc(100vh-200px)]">
                     Loading...
                 </div>
-                <div>
-                    <div className="w-full max-w-[1024px] mx-auto">
-                        <GoogleAd />
-                    </div>
-                </div>
             </div>
         );
     }
@@ -145,14 +140,10 @@ const WorldCupGame = () => {
             <div className="min-h-screen flex flex-col">
                 <div className="flex-1 flex flex-col justify-center items-center min-h-[calc(100vh-200px)]">
                     <p className="text-red-500 mb-4">{error}</p>
-                    <button onClick={startGame} className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition-colors">
+                    <button onClick={startGame}
+                            className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition-colors">
                         다시 시도
                     </button>
-                </div>
-                <div>
-                    <div className="w-full max-w-[1024px] mx-auto">
-                        <GoogleAd />
-                    </div>
                 </div>
             </div>
         );
@@ -212,7 +203,7 @@ const WorldCupGame = () => {
                 </div>
                 <div>
                     <div className="w-full max-w-[1024px] mx-auto">
-                        <GoogleAd />
+                        <GoogleAd/>
                     </div>
                 </div>
             </div>
@@ -252,7 +243,7 @@ const WorldCupGame = () => {
             </div>
             <div>
                 <div className="w-full max-w-[1024px] mx-auto">
-                    <GoogleAd />
+                    <GoogleAd/>
                 </div>
             </div>
         </div>
