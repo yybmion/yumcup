@@ -10,6 +10,7 @@ import mioneF.yumCup.domain.entity.Restaurant;
 import mioneF.yumCup.exception.InsufficientRestaurantsException;
 import mioneF.yumCup.external.kakao.dto.KakaoDocument;
 import mioneF.yumCup.external.kakao.dto.KakaoSearchResponse;
+import mioneF.yumCup.performance.Monitored;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -31,6 +32,7 @@ public class KakaoMapRestaurantService {
     private static final int PAGE_SIZE = 15;
     private static final int REQUIRED_RESTAURANTS = 45;
 
+    @Monitored
     public List<Restaurant> searchNearbyRestaurants(Double latitude, Double longitude, Integer radius) {
         List<Restaurant> allRestaurants = new ArrayList<>();
         int page = 1;
@@ -121,7 +123,8 @@ public class KakaoMapRestaurantService {
                 String weekdayText = null;
                 Boolean isOpenNow = null;
                 if (place.opening_hours() != null) {
-                    if (place.opening_hours().weekday_text() != null && !place.opening_hours().weekday_text().isEmpty()) {
+                    if (place.opening_hours().weekday_text() != null && !place.opening_hours().weekday_text()
+                            .isEmpty()) {
                         weekdayText = String.join("\n", place.opening_hours().weekday_text());
                     }
                     isOpenNow = place.opening_hours().open_now();

@@ -8,8 +8,8 @@ import mioneF.yumCup.domain.dto.request.SelectWinnerRequest;
 import mioneF.yumCup.domain.dto.response.GameResponse;
 import mioneF.yumCup.exception.InsufficientRestaurantsException;
 import mioneF.yumCup.external.kakao.service.KakapMapGameService;
+import mioneF.yumCup.performance.Monitored;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -29,6 +29,7 @@ public class YumcupController {
         return ResponseEntity.ok(response);
     }
 
+    @Monitored
     @PostMapping("/start/location")
     public ResponseEntity<GameResponse> startLocationBasedGame(@RequestBody LocationRequest request) {
         log.info("Received location request: {}", request);

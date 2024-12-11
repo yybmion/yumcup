@@ -7,6 +7,7 @@ import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import mioneF.yumCup.cache.GooglePlaceCache;
 import mioneF.yumCup.domain.dto.response.GooglePlaceResponse;
+import mioneF.yumCup.performance.Monitored;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheConfig;
@@ -37,6 +38,7 @@ public class GooglePlaceService {
         this.redisTemplate = redisTemplate;
     }
 
+    @Monitored
     public GooglePlaceResponse findPlace(String kakaoId, String name, double lat, double lng) {
         String cacheKey = generateCacheKey(kakaoId, name);
         log.info("Searching place info for: {} (kakaoId: {})", name, kakaoId);
@@ -179,7 +181,8 @@ public class GooglePlaceService {
                             .queryParam("input", name)
                             .queryParam("inputtype", "textquery")
                             .queryParam("locationbias", String.format("circle:100@%f,%f", lat, lng))
-                            .queryParam("fields", "place_id,name,rating,user_ratings_total,photos,price_level,opening_hours")
+                            .queryParam("fields",
+                                    "place_id,name,rating,user_ratings_total,photos,price_level,opening_hours")
                             .queryParam("key", googleApiKey)
                             .build())
                     .retrieve()
