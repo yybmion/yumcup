@@ -52,10 +52,6 @@ public class Restaurant {
     private String photoUrl;        // 구글 이미지 URL
 
     private Boolean isOpenNow;
-    private String openingHours;
-
-    @Column(columnDefinition = "TEXT")
-    private String weekdayText;
 
     private LocalDateTime updatedAt;
 
@@ -77,9 +73,7 @@ public class Restaurant {
             Integer ratingCount,
             Integer priceLevel,
             String photoUrl,
-            Boolean isOpenNow,
-            String openingHours,
-            String weekdayText
+            Boolean isOpenNow
     ) {
         this.name = name;
         this.category = category;
@@ -98,8 +92,6 @@ public class Restaurant {
         this.priceLevel = priceLevel;
         this.photoUrl = photoUrl;
         this.isOpenNow = isOpenNow;
-        this.openingHours = openingHours;
-        this.weekdayText = weekdayText;
     }
 
     @PreUpdate
@@ -109,41 +101,39 @@ public class Restaurant {
     }
 
     // KakapMapGameService에서 사용
-    public void updateWithNewInfo(Restaurant newInfo) {
-        this.distance = newInfo.getDistance();
-        this.rating = newInfo.getRating();
-        this.ratingCount = newInfo.getRatingCount();
-        this.photoUrl = newInfo.getPhotoUrl();
-        this.priceLevel = newInfo.getPriceLevel();
-        this.isOpenNow = newInfo.getIsOpenNow();
-        this.openingHours = newInfo.getOpeningHours();
-        this.weekdayText = newInfo.getWeekdayText();
-    }
-
-    public void updateWithGoogleInfo(GooglePlaceResponse googleResponse) {
-        if (googleResponse != null &&
-                googleResponse.candidates() != null &&
-                !googleResponse.candidates().isEmpty()) {
-
-            GooglePlaceResponse.GooglePlace place = googleResponse.candidates().get(0);
-
-            // 평점 정보 업데이트
-            this.rating = place.rating();
-            this.ratingCount = place.user_ratings_total();
-
-            // 가격대 정보 업데이트
-            this.priceLevel = place.price_level();
-
-            // 영업시간 정보 업데이트
-            if (place.opening_hours() != null) {
-                this.isOpenNow = place.opening_hours().open_now();
-                if (place.opening_hours().weekday_text() != null &&
-                        !place.opening_hours().weekday_text().isEmpty()) {
-                    this.openingHours = String.join("\n", place.opening_hours().weekday_text());
-                }
-            }
-        }
-    }
+//    public void updateWithNewInfo(Restaurant newInfo) {
+//        this.distance = newInfo.getDistance();
+//        this.rating = newInfo.getRating();
+//        this.ratingCount = newInfo.getRatingCount();
+//        this.photoUrl = newInfo.getPhotoUrl();
+//        this.priceLevel = newInfo.getPriceLevel();
+//        this.isOpenNow = newInfo.getIsOpenNow();
+//    }
+//
+//    public void updateWithGoogleInfo(GooglePlaceResponse googleResponse) {
+//        if (googleResponse != null &&
+//                googleResponse.candidates() != null &&
+//                !googleResponse.candidates().isEmpty()) {
+//
+//            GooglePlaceResponse.GooglePlace place = googleResponse.candidates().get(0);
+//
+//            // 평점 정보 업데이트
+//            this.rating = place.rating();
+//            this.ratingCount = place.user_ratings_total();
+//
+//            // 가격대 정보 업데이트
+//            this.priceLevel = place.price_level();
+//
+//            // 영업시간 정보 업데이트
+//            if (place.opening_hours() != null) {
+//                this.isOpenNow = place.opening_hours().open_now();
+//                if (place.opening_hours().weekday_text() != null &&
+//                        !place.opening_hours().weekday_text().isEmpty()) {
+//                    this.openingHours = String.join("\n", place.opening_hours().weekday_text());
+//                }
+//            }
+//        }
+//    }
 
     // 게임 관련 메서드
     public void incrementWinCount() {
