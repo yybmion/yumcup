@@ -4,13 +4,19 @@ const RestaurantCard = ({restaurant, onClick}) => {
     const DEFAULT_IMAGE = '/images/default-restaurant.png';
 
     const getPriceLevelClass = (priceLevel) => {
-        switch(priceLevel) {
-            case "무료": return "bg-gray-100 text-gray-800";
-            case "저렴": return "bg-green-100 text-green-800";
-            case "보통": return "bg-blue-100 text-blue-800";
-            case "비싼": return "bg-yellow-100 text-yellow-800";
-            case "매우 비싼": return "bg-red-100 text-red-800";
-            default: return "bg-gray-100 text-gray-800";
+        switch (priceLevel) {
+            case "무료":
+                return "bg-gray-100 text-gray-800";
+            case "저렴":
+                return "bg-green-100 text-green-800";
+            case "보통":
+                return "bg-blue-100 text-blue-800";
+            case "비싼":
+                return "bg-yellow-100 text-yellow-800";
+            case "매우 비싼":
+                return "bg-red-100 text-red-800";
+            default:
+                return "bg-gray-100 text-gray-800";
         }
     };
 
@@ -40,7 +46,8 @@ const RestaurantCard = ({restaurant, onClick}) => {
 
             {/* 태그들 */}
             <div className="flex flex-wrap gap-1 sm:gap-2 mb-2 sm:mb-3">
-              <span className={`px-2 py-1 rounded-full text-xs sm:text-sm ${getPriceLevelClass(restaurant.priceLevel)}`}>
+              <span
+                  className={`px-2 py-1 rounded-full text-xs sm:text-sm ${getPriceLevelClass(restaurant.priceLevel)}`}>
                   💰 {restaurant.priceLevel || "가격정보 없음"}
               </span>
 
@@ -66,7 +73,11 @@ const RestaurantCard = ({restaurant, onClick}) => {
             <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm text-gray-500">
                 <p className="flex items-center gap-2">
                     <span>🕒</span>
-                    {restaurant.weekdayText || "영업시간 정보 없음"}
+                    자세한 영업시간은
+                    <span className="text-blue-600 font-semibold animate-pulse">
+                        [정보보기]
+                    </span>
+                    를 클릭해주세요
                 </p>
                 <p className="flex items-center gap-2">
                     <span>📍</span>
@@ -100,8 +111,8 @@ const RestaurantCard = ({restaurant, onClick}) => {
                         e.stopPropagation();
                         window.open(restaurant.placeUrl, '_blank');
                     }}
-                    className="px-3 sm:px-4 py-2 border border-gray-300 rounded-lg
-                           hover:bg-gray-50 transition-colors text-sm sm:text-base"
+                    className="px-3 sm:px-4 py-2 bg-blue-100 text-blue-600 font-semibold rounded-lg
+                           hover:bg-blue-200 transition-colors text-sm sm:text-base border-2 border-blue-200"
                 >
                     정보보기
                 </button>
