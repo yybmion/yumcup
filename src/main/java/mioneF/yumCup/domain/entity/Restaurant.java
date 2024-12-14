@@ -5,15 +5,20 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
+import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import mioneF.yumCup.external.kakao.dto.KakaoPlaceResponse;
+import mioneF.yumCup.domain.dto.response.GooglePlaceResponse;
 
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Table(indexes = @jakarta.persistence.Index(name = "idx_kakao_id", columnList = "kakaoId", unique = true))
 public class Restaurant {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -27,7 +32,9 @@ public class Restaurant {
     private Integer playCount;
 
     // 카카오맵 기본 정보
+    @Column(unique = true)
     private String kakaoId;
+
     private Double latitude;
     private Double longitude;
     private String address;
@@ -49,6 +56,8 @@ public class Restaurant {
 
     @Column(columnDefinition = "TEXT")
     private String weekdayText;
+
+    private LocalDateTime updatedAt;
 
     @Builder(toBuilder = true)
     public Restaurant(
@@ -93,6 +102,12 @@ public class Restaurant {
         this.weekdayText = weekdayText;
     }
 
+    @PreUpdate
+    @PrePersist
+    public void updateTimestamp() {
+        this.updatedAt = LocalDateTime.now();
+    }
+
     // KakapMapGameService에서 사용
     public void updateWithNewInfo(Restaurant newInfo) {
         this.distance = newInfo.getDistance();
@@ -105,6 +120,31 @@ public class Restaurant {
         this.weekdayText = newInfo.getWeekdayText();
     }
 
+    public void updateWithGoogleInfo(GooglePlaceResponse googleResponse) {
+        if (googleResponse != null &&
+                googleResponse.candidates() != null &&
+                !googleResponse.candidates().isEmpty()) {
+
+            GooglePlaceResponse.GooglePlace place = googleResponse.candidates().get(0);
+
+            // 평점 정보 업데이트
+            this.rating = place.rating();
+            this.ratingCount = place.user_ratings_total();
+
+            // 가격대 정보 업데이트
+            this.priceLevel = place.price_level();
+
+            // 영업시간 정보 업데이트
+            if (place.opening_hours() != null) {
+                this.isOpenNow = place.opening_hours().open_now();
+                if (place.opening_hours().weekday_text() != null &&
+                        !place.opening_hours().weekday_text().isEmpty()) {
+                    this.openingHours = String.join("\n", place.opening_hours().weekday_text());
+                }
+            }
+        }
+    }
+
     // 게임 관련 메서드
     public void incrementWinCount() {
         this.winCount++;
@@ -112,5 +152,9 @@ public class Restaurant {
 
     public void incrementPlayCount() {
         this.playCount++;
+    }
+
+    public void setPhotoUrl(String photoUrl) {
+        this.photoUrl = photoUrl;
     }
 }
