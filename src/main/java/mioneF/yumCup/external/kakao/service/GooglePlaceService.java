@@ -46,7 +46,8 @@ public class GooglePlaceService {
                             .queryParam("inputtype", "textquery")
                             .queryParam("locationbias", String.format("circle:100@%f,%f", lat, lng))
                             .queryParam("fields",
-                                    "place_id,name,rating,user_ratings_total,photos,price_level,opening_hours")
+                                    "fields",
+                                    "place_id,name,rating,user_ratings_total,photos,price_level,opening_hours/open_now")
                             .queryParam("key", googleApiKey)
                             .build())
                     .retrieve()

@@ -202,7 +202,6 @@ public class KakaoMapRestaurantService {
                 .ratingCount(place.user_ratings_total())
                 .photoUrl(photoUrl)
                 .priceLevel(place.price_level())
-                .weekdayText(openingHours.weekdayText())
                 .isOpenNow(openingHours.isOpenNow())
                 .build();
     }
@@ -216,17 +215,13 @@ public class KakaoMapRestaurantService {
 
     private GooglePlaceOpeningHours extractOpeningHours(GooglePlaceResponse.GooglePlace place) {
         if (place.opening_hours() != null) {
-            String weekdayText = null;
-            if (place.opening_hours().weekday_text() != null &&
-                    !place.opening_hours().weekday_text().isEmpty()) {
-                weekdayText = String.join("\n", place.opening_hours().weekday_text());
-            }
-            return new GooglePlaceOpeningHours(weekdayText, place.opening_hours().open_now());
+            return new GooglePlaceOpeningHours(place.opening_hours().open_now());
         }
-        return new GooglePlaceOpeningHours(null, null);
+        return new GooglePlaceOpeningHours(null);
     }
 
-    private record GooglePlaceOpeningHours(String weekdayText, Boolean isOpenNow) {}
+    private record GooglePlaceOpeningHours(Boolean isOpenNow) {
+    }
 
     private String extractMainCategory(String categoryName) {
         String[] categories = categoryName.split(" > ");

@@ -26,8 +26,7 @@ public record GooglePlaceResponse(
 
         @JsonIgnoreProperties(ignoreUnknown = true)
         public record OpeningHours(
-                Boolean open_now,
-                List<String> weekday_text
+                Boolean open_now
         ) {}
     }
 }

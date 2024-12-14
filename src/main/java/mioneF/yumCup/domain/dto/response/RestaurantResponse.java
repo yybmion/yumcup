@@ -16,7 +16,6 @@ public record RestaurantResponse(
         Double rating,
         Integer ratingCount,      // 평점 개수 추가
         String priceLevel,
-        String weekdayText,
         Boolean isOpenNow
 ) {
     public static RestaurantResponse from(Restaurant restaurant) {
@@ -33,7 +32,6 @@ public record RestaurantResponse(
                 restaurant.getRating(),
                 restaurant.getRatingCount(),
                 PriceLevel.getDescription(restaurant.getPriceLevel()),
-                restaurant.getOpeningHours(),
                 restaurant.getIsOpenNow()
         );
     }
