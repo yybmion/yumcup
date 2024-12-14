@@ -66,6 +66,11 @@ spring:
     password: ${MYSQL_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
+    hikari:
+      maximum-pool-size: 20        # 커넥션 풀 크기 증가
+      minimum-idle: 5              # 최소 유지 커넥션
+      connection-timeout: 30000    # 커넥션 획득 대기 시간
+
   jpa:
     hibernate:
       ddl-auto: update
@@ -73,8 +78,23 @@ spring:
     properties:
       hibernate:
         format_sql: true
+        connection:
+          provider_disables_autocommit: false
+          jdbc:
+            batch_size: 100
+          order_inserts: true
+          order_updates: true
+          batch_versioned_data: true
       default_batch_fetch_size: 100
     open-in-view: false
+
+
+  task:
+    execution:
+      pool:
+        core-size: 10
+        max-size: 10
+        queue-capacity: 100
 
   redis:
     host: 127.0.0.1  # Redis 서버 호스트

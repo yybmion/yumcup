@@ -1,8 +1,15 @@
 package mioneF.yumCup.external.kakao.service;
 
+import jakarta.annotation.PreDestroy;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import mioneF.yumCup.domain.dto.response.GooglePlaceResponse;
@@ -11,26 +18,39 @@ import mioneF.yumCup.exception.InsufficientRestaurantsException;
 import mioneF.yumCup.external.kakao.dto.KakaoDocument;
 import mioneF.yumCup.external.kakao.dto.KakaoSearchResponse;
 import mioneF.yumCup.performance.Monitored;
+import mioneF.yumCup.repository.RestaurantRepository;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.reactive.function.client.WebClient;
 
 @Slf4j
 @Service
 public class KakaoMapRestaurantService {
+    private final ExecutorService executorService;
     private final WebClient kakaoWebClient;
     private final GooglePlaceService googlePlaceService;
+    private final RestaurantRepository restaurantRepository;
+    private final TransactionTemplate transactionTemplate;
 
     public KakaoMapRestaurantService(
             @Qualifier("kakaoWebClient") WebClient kakaoWebClient,
-            GooglePlaceService googlePlaceService) {
+            GooglePlaceService googlePlaceService,
+            RestaurantRepository restaurantRepository,
+            TransactionTemplate transactionTemplate) {
         this.kakaoWebClient = kakaoWebClient;
         this.googlePlaceService = googlePlaceService;
+        this.restaurantRepository = restaurantRepository;
+        this.transactionTemplate = transactionTemplate;
+        this.executorService = Executors.newFixedThreadPool(
+                Runtime.getRuntime().availableProcessors() * 2
+        );
     }
 
     private static final String CATEGORY_GROUP_CODE = "FD6";
     private static final int PAGE_SIZE = 15;
-    private static final int REQUIRED_RESTAURANTS = 45;
+    private static final int REQUIRED_RESTAURANTS = 16;
 
     @Monitored
     public List<Restaurant> searchNearbyRestaurants(Double latitude, Double longitude, Integer radius) {
@@ -44,8 +64,50 @@ public class KakaoMapRestaurantService {
                 break;
             }
 
-            List<Restaurant> pageRestaurants = response.documents().stream()
-                    .map(doc -> convertToRestaurant(doc, latitude, longitude))
+            // CompletableFuture 리스트 생성
+            List<CompletableFuture<Restaurant>> futures = response.documents().stream()
+                    .map(doc -> CompletableFuture.supplyAsync(() -> {
+                        return transactionTemplate.execute(status -> {
+                            try {
+                                // 1. 먼저 DB에서 찾기
+                                Optional<Restaurant> existingRestaurant = restaurantRepository.findByKakaoId(doc.id());
+                                if (existingRestaurant.isPresent()) {
+                                    log.info("Found existing restaurant: {}", doc.place_name());
+                                    return existingRestaurant.get();
+                                }
+
+                                // 2. 구글 API 호출하여 레스토랑 정보 생성
+                                Restaurant newRestaurant = createRestaurantWithGoogleInfo(doc, latitude, longitude);
+
+                                try {
+                                    // 3. 저장 시도
+                                    return restaurantRepository.save(newRestaurant);
+                                } catch (DataIntegrityViolationException e) {
+                                    // 4. 저장 실패시 (다른 쓰레드가 이미 저장한 경우) 다시 조회
+                                    log.info("Restaurant was already saved by another thread: {}", doc.place_name());
+                                    return restaurantRepository.findByKakaoId(doc.id())
+                                            .orElseThrow(() -> new RuntimeException("Failed to process restaurant"));
+                                }
+                            } catch (Exception e) {
+                                log.error("Error processing restaurant {}: {}", doc.place_name(), e.getMessage());
+                                status.setRollbackOnly();
+                                throw e;
+                            }
+                        });
+                    }, executorService))
+                    .collect(Collectors.toList());
+
+            // 모든 Future 완료 대기
+            List<Restaurant> pageRestaurants = futures.stream()
+                    .map(future -> {
+                        try {
+                            return future.get(5, TimeUnit.SECONDS);  // 타임아웃 5초
+                        } catch (Exception e) {
+                            log.error("Error processing restaurant: ", e);
+                            return null;
+                        }
+                    })
+                    .filter(Objects::nonNull)
                     .collect(Collectors.toList());
 
             allRestaurants.addAll(pageRestaurants);
@@ -57,7 +119,7 @@ public class KakaoMapRestaurantService {
             page++;
         }
 
-        if (allRestaurants.size() < 16) {
+        if (allRestaurants.size() < REQUIRED_RESTAURANTS) {
             throw new InsufficientRestaurantsException(
                     String.format("Need at least 16 restaurants, but found only %d", allRestaurants.size())
             );
@@ -83,7 +145,7 @@ public class KakaoMapRestaurantService {
                 .block();
     }
 
-    private Restaurant convertToRestaurant(KakaoDocument doc, Double userLat, Double userLng) {
+    private Restaurant createRestaurantWithGoogleInfo(KakaoDocument doc, Double userLat, Double userLng) {
         String category = extractMainCategory(doc.category_name());
 
         Restaurant restaurant = Restaurant.builder()
@@ -149,5 +211,17 @@ public class KakaoMapRestaurantService {
     private String extractMainCategory(String categoryName) {
         String[] categories = categoryName.split(" > ");
         return categories.length > 1 ? categories[1] : categories[0];
+    }
+
+    @PreDestroy
+    public void shutdown() {
+        executorService.shutdown();
+        try {
+            if (!executorService.awaitTermination(60, TimeUnit.SECONDS)) {
+                executorService.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            executorService.shutdownNow();
+        }
     }
 }
