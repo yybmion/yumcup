@@ -77,7 +77,7 @@ const RestaurantCard = ({restaurant, onClick}) => {
                     <span className="text-blue-600 font-semibold animate-pulse">
                         [정보보기]
                     </span>
-                    를 클릭해주세요
+                    클릭!
                 </p>
                 <p className="flex items-center gap-2">
                     <span>📍</span>
