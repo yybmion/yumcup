@@ -28,15 +28,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 @Slf4j
 @Service
 public class KakaoMapRestaurantService {
-    private static final ExecutorService executorService = Executors.newFixedThreadPool(
-            Runtime.getRuntime().availableProcessors() * 2
-    );
-    private static final String CATEGORY_GROUP_CODE = "FD6";
-    private static final int PAGE_SIZE = 15;
-    private static final int REQUIRED_RESTAURANTS = 16;
-    private static final int FUTURE_TIMEOUT_SECONDS = 5;
-    private static final int EXECUTOR_SHUTDOWN_TIMEOUT_SECONDS = 60;
-
+    private final ExecutorService executorService;
     private final WebClient kakaoWebClient;
     private final GooglePlaceService googlePlaceService;
     private final RestaurantRepository restaurantRepository;
@@ -51,7 +43,14 @@ public class KakaoMapRestaurantService {
         this.googlePlaceService = googlePlaceService;
         this.restaurantRepository = restaurantRepository;
         this.transactionTemplate = transactionTemplate;
+        this.executorService = Executors.newFixedThreadPool(
+                Runtime.getRuntime().availableProcessors() * 2
+        );
     }
+
+    private static final String CATEGORY_GROUP_CODE = "FD6";
+    private static final int PAGE_SIZE = 15;
+    private static final int REQUIRED_RESTAURANTS = 16;
 
     @Monitored
     public List<Restaurant> searchNearbyRestaurants(Double latitude, Double longitude, Integer radius) {
@@ -61,80 +60,73 @@ public class KakaoMapRestaurantService {
         while (allRestaurants.size() < REQUIRED_RESTAURANTS) {
             KakaoSearchResponse response = fetchRestaurantsPage(latitude, longitude, radius, page);
 
-            if (isEmptyResponse(response)) {
+            if (response == null || response.documents().isEmpty()) {
                 break;
             }
 
-            List<Restaurant> pageRestaurants = processRestaurantPage(response.documents(), latitude, longitude);
+            // CompletableFuture 리스트 생성
+            List<CompletableFuture<Restaurant>> futures = response.documents().stream()
+                    .map(doc -> CompletableFuture.supplyAsync(() -> {
+                        return transactionTemplate.execute(status -> {
+                            try {
+                                // 1. 먼저 DB에서 찾기
+                                Optional<Restaurant> existingRestaurant = restaurantRepository.findByKakaoId(doc.id());
+                                if (existingRestaurant.isPresent()) {
+                                    log.info("Found existing restaurant: {}", doc.place_name());
+                                    return existingRestaurant.get();
+                                }
+
+                                // 2. 구글 API 호출하여 레스토랑 정보 생성
+                                Restaurant newRestaurant = createRestaurantWithGoogleInfo(doc, latitude, longitude);
+
+                                try {
+                                    // 3. 저장 시도
+                                    return restaurantRepository.save(newRestaurant);
+                                } catch (DataIntegrityViolationException e) {
+                                    // 4. 저장 실패시 (다른 쓰레드가 이미 저장한 경우) 다시 조회
+                                    log.info("Restaurant was already saved by another thread: {}", doc.place_name());
+                                    return restaurantRepository.findByKakaoId(doc.id())
+                                            .orElseThrow(() -> new RuntimeException("Failed to process restaurant"));
+                                }
+                            } catch (Exception e) {
+                                log.error("Error processing restaurant {}: {}", doc.place_name(), e.getMessage());
+                                status.setRollbackOnly();
+                                throw e;
+                            }
+                        });
+                    }, executorService))
+                    .collect(Collectors.toList());
+
+            // 모든 Future 완료 대기
+            List<Restaurant> pageRestaurants = futures.stream()
+                    .map(future -> {
+                        try {
+                            return future.get(5, TimeUnit.SECONDS);  // 타임아웃 5초
+                        } catch (Exception e) {
+                            log.error("Error processing restaurant: ", e);
+                            return null;
+                        }
+                    })
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+
             allRestaurants.addAll(pageRestaurants);
 
             if (response.meta().is_end()) {
                 break;
             }
+
             page++;
         }
 
-        validateRestaurantCount(allRestaurants);
+        if (allRestaurants.size() < REQUIRED_RESTAURANTS) {
+            throw new InsufficientRestaurantsException(
+                    String.format("Need at least 16 restaurants, but found only %d", allRestaurants.size())
+            );
+        }
+
         Collections.shuffle(allRestaurants);
         return allRestaurants;
-    }
-
-    private boolean isEmptyResponse(KakaoSearchResponse response) {
-        return response == null || response.documents().isEmpty();
-    }
-
-    private List<Restaurant> processRestaurantPage(List<KakaoDocument> documents, Double latitude, Double longitude) {
-        List<CompletableFuture<Restaurant>> futures = documents.stream()
-                .map(doc -> createRestaurantFuture(doc, latitude, longitude))
-                .collect(Collectors.toList());
-
-        return futures.stream()
-                .map(this::getRestaurantFromFuture)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
-    }
-
-    private CompletableFuture<Restaurant> createRestaurantFuture(KakaoDocument doc, Double latitude, Double longitude) {
-        return CompletableFuture.supplyAsync(() ->
-                processRestaurantWithTransaction(doc, latitude, longitude), executorService);
-    }
-
-    private Restaurant processRestaurantWithTransaction(KakaoDocument doc, Double latitude, Double longitude) {
-        return transactionTemplate.execute(status -> {
-            try {
-                return findOrCreateRestaurant(doc, latitude, longitude);
-            } catch (Exception e) {
-                log.error("Error processing restaurant {}: {}", doc.place_name(), e.getMessage());
-                status.setRollbackOnly();
-                throw new RuntimeException("Failed to process restaurant", e);
-            }
-        });
-    }
-
-    private Restaurant findOrCreateRestaurant(KakaoDocument doc, Double latitude, Double longitude) {
-        Optional<Restaurant> existingRestaurant = restaurantRepository.findByKakaoId(doc.id());
-        if (existingRestaurant.isPresent()) {
-            log.info("Found existing restaurant: {}", doc.place_name());
-            return existingRestaurant.get();
-        }
-
-        Restaurant newRestaurant = createRestaurantWithGoogleInfo(doc, latitude, longitude);
-        try {
-            return restaurantRepository.save(newRestaurant);
-        } catch (DataIntegrityViolationException e) {
-            log.info("Restaurant was already saved by another thread: {}", doc.place_name());
-            return restaurantRepository.findByKakaoId(doc.id())
-                    .orElseThrow(() -> new RuntimeException("Failed to process restaurant"));
-        }
-    }
-
-    private Restaurant getRestaurantFromFuture(CompletableFuture<Restaurant> future) {
-        try {
-            return future.get(FUTURE_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        } catch (Exception e) {
-            log.error("Error processing restaurant: ", e);
-            return null;
-        }
     }
 
     private KakaoSearchResponse fetchRestaurantsPage(Double latitude, Double longitude, Integer radius, int page) {
@@ -154,15 +146,11 @@ public class KakaoMapRestaurantService {
     }
 
     private Restaurant createRestaurantWithGoogleInfo(KakaoDocument doc, Double userLat, Double userLng) {
-        Restaurant restaurant = createBasicRestaurant(doc);
-        enrichRestaurantWithGoogleInfo(restaurant, doc);
-        return restaurant;
-    }
+        String category = extractMainCategory(doc.category_name());
 
-    private Restaurant createBasicRestaurant(KakaoDocument doc) {
-        return Restaurant.builder()
+        Restaurant restaurant = Restaurant.builder()
                 .name(doc.place_name())
-                .category(extractMainCategory(doc.category_name()))
+                .category(category)
                 .distance(Integer.parseInt(doc.distance()))
                 .kakaoId(doc.id())
                 .latitude(Double.parseDouble(doc.y()))
@@ -172,9 +160,7 @@ public class KakaoMapRestaurantService {
                 .phone(doc.phone())
                 .placeUrl(doc.place_url())
                 .build();
-    }
 
-    private void enrichRestaurantWithGoogleInfo(Restaurant restaurant, KakaoDocument doc) {
         try {
             GooglePlaceResponse googleResponse = googlePlaceService.findPlace(
                     doc.id(),
@@ -186,41 +172,34 @@ public class KakaoMapRestaurantService {
             if (googleResponse != null &&
                     googleResponse.candidates() != null &&
                     !googleResponse.candidates().isEmpty()) {
-                updateRestaurantWithGoogleData(restaurant, googleResponse.candidates().get(0));
+
+                GooglePlaceResponse.GooglePlace place = googleResponse.candidates().get(0);
+                String photoUrl = null;
+                if (place.photos() != null && !place.photos().isEmpty()) {
+                    photoUrl = googlePlaceService.getPhotoUrl(
+                            place.photos().get(0).photo_reference()
+                    );
+                }
+
+                // opening_hours 처리
+                Boolean isOpenNow = null;
+                if (place.opening_hours() != null) {
+                    isOpenNow = place.opening_hours().open_now();
+                }
+
+                restaurant = restaurant.toBuilder()
+                        .rating(place.rating())
+                        .ratingCount(place.user_ratings_total())
+                        .photoUrl(photoUrl)
+                        .priceLevel(place.price_level())  // priceRange 대신 priceLevel 사용
+                        .isOpenNow(isOpenNow)             // 현재 영업 여부 추가
+                        .build();
             }
         } catch (Exception e) {
             log.error("Error updating restaurant with Google data: ", e);
         }
-    }
 
-    private void updateRestaurantWithGoogleData(Restaurant restaurant, GooglePlaceResponse.GooglePlace place) {
-        String photoUrl = getPhotoUrlFromPlace(place);
-        GooglePlaceOpeningHours openingHours = extractOpeningHours(place);
-
-        restaurant = restaurant.toBuilder()
-                .rating(place.rating())
-                .ratingCount(place.user_ratings_total())
-                .photoUrl(photoUrl)
-                .priceLevel(place.price_level())
-                .isOpenNow(openingHours.isOpenNow())
-                .build();
-    }
-
-    private String getPhotoUrlFromPlace(GooglePlaceResponse.GooglePlace place) {
-        if (place.photos() != null && !place.photos().isEmpty()) {
-            return googlePlaceService.getPhotoUrl(place.photos().get(0).photo_reference());
-        }
-        return null;
-    }
-
-    private GooglePlaceOpeningHours extractOpeningHours(GooglePlaceResponse.GooglePlace place) {
-        if (place.opening_hours() != null) {
-            return new GooglePlaceOpeningHours(place.opening_hours().open_now());
-        }
-        return new GooglePlaceOpeningHours(null);
-    }
-
-    private record GooglePlaceOpeningHours(Boolean isOpenNow) {
+        return restaurant;
     }
 
     private String extractMainCategory(String categoryName) {
@@ -228,25 +207,15 @@ public class KakaoMapRestaurantService {
         return categories.length > 1 ? categories[1] : categories[0];
     }
 
-    private void validateRestaurantCount(List<Restaurant> restaurants) {
-        if (restaurants.size() < REQUIRED_RESTAURANTS) {
-            throw new InsufficientRestaurantsException(
-                    String.format("Need at least %d restaurants, but found only %d",
-                            REQUIRED_RESTAURANTS, restaurants.size())
-            );
-        }
-    }
-
     @PreDestroy
     public void shutdown() {
         executorService.shutdown();
         try {
-            if (!executorService.awaitTermination(EXECUTOR_SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+            if (!executorService.awaitTermination(60, TimeUnit.SECONDS)) {
                 executorService.shutdownNow();
             }
         } catch (InterruptedException e) {
             executorService.shutdownNow();
-            Thread.currentThread().interrupt();
         }
     }
 }
