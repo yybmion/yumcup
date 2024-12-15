@@ -1,6 +1,5 @@
 import React, {useEffect, useState} from 'react';
 import RestaurantCard from './RestaurantCard';
-import GoogleAd from '../components/GoogleAd';  // GoogleAd import 추가
 
 const WorldCupGame = () => {
     const [gameId, setGameId] = useState(null);
@@ -202,9 +201,6 @@ const WorldCupGame = () => {
                     </div>
                 </div>
                 <div>
-                    <div className="w-full max-w-[1024px] mx-auto">
-                        <GoogleAd/>
-                    </div>
                 </div>
             </div>
         );
@@ -242,9 +238,6 @@ const WorldCupGame = () => {
                 </div>
             </div>
             <div>
-                <div className="w-full max-w-[1024px] mx-auto">
-                    <GoogleAd/>
-                </div>
             </div>
         </div>
     );
