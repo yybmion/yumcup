@@ -1,6 +1,7 @@
 package mioneF.yumCup.external.kakao.service;
 
 import jakarta.annotation.PreDestroy;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -28,6 +29,10 @@ import org.springframework.web.reactive.function.client.WebClient;
 @Slf4j
 @Service
 public class KakaoMapRestaurantService {
+    private static final String CATEGORY_GROUP_CODE = "FD6";
+    private static final int PAGE_SIZE = 15;
+    private static final int REQUIRED_RESTAURANTS = 16;
+
     private final ExecutorService executorService;
     private final WebClient kakaoWebClient;
     private final GooglePlaceService googlePlaceService;
@@ -47,10 +52,6 @@ public class KakaoMapRestaurantService {
                 Runtime.getRuntime().availableProcessors() * 2
         );
     }
-
-    private static final String CATEGORY_GROUP_CODE = "FD6";
-    private static final int PAGE_SIZE = 15;
-    private static final int REQUIRED_RESTAURANTS = 16;
 
     @Monitored
     public List<Restaurant> searchNearbyRestaurants(Double latitude, Double longitude, Integer radius) {
@@ -73,6 +74,13 @@ public class KakaoMapRestaurantService {
                                 Optional<Restaurant> existingRestaurant = restaurantRepository.findByKakaoId(doc.id());
                                 if (existingRestaurant.isPresent()) {
                                     log.info("Found existing restaurant: {}", doc.place_name());
+                                    if (existingRestaurant.get().getUpdatedAt()
+                                            .isAfter(LocalDateTime.now().minusDays(14))) {
+                                        return existingRestaurant.get();
+                                    }
+
+                                    Restaurant newRestaurant = createRestaurantWithGoogleInfo(doc, latitude, longitude);
+                                    existingRestaurant.get().updateWithNewInfo(newRestaurant);
                                     return existingRestaurant.get();
                                 }
 
