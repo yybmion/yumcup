@@ -101,15 +101,15 @@ public class Restaurant {
     }
 
     // KakapMapGameService에서 사용
-//    public void updateWithNewInfo(Restaurant newInfo) {
-//        this.distance = newInfo.getDistance();
-//        this.rating = newInfo.getRating();
-//        this.ratingCount = newInfo.getRatingCount();
-//        this.photoUrl = newInfo.getPhotoUrl();
-//        this.priceLevel = newInfo.getPriceLevel();
-//        this.isOpenNow = newInfo.getIsOpenNow();
-//    }
-//
+    public void updateWithNewInfo(Restaurant newInfo) {
+        this.distance = newInfo.getDistance();
+        this.rating = newInfo.getRating();
+        this.ratingCount = newInfo.getRatingCount();
+        this.photoUrl = newInfo.getPhotoUrl();
+        this.priceLevel = newInfo.getPriceLevel();
+        this.isOpenNow = newInfo.getIsOpenNow();
+    }
+
 //    public void updateWithGoogleInfo(GooglePlaceResponse googleResponse) {
 //        if (googleResponse != null &&
 //                googleResponse.candidates() != null &&
@@ -127,10 +127,6 @@ public class Restaurant {
 //            // 영업시간 정보 업데이트
 //            if (place.opening_hours() != null) {
 //                this.isOpenNow = place.opening_hours().open_now();
-//                if (place.opening_hours().weekday_text() != null &&
-//                        !place.opening_hours().weekday_text().isEmpty()) {
-//                    this.openingHours = String.join("\n", place.opening_hours().weekday_text());
-//                }
 //            }
 //        }
 //    }
@@ -146,5 +142,9 @@ public class Restaurant {
 
     public void setPhotoUrl(String photoUrl) {
         this.photoUrl = photoUrl;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
     }
 }

@@ -12,36 +12,24 @@ import mioneF.yumCup.domain.entity.Game;
 import mioneF.yumCup.domain.entity.Match;
 import mioneF.yumCup.domain.entity.Restaurant;
 import mioneF.yumCup.repository.GameRepository;
-import mioneF.yumCup.repository.RestaurantRepository;
 import mioneF.yumCup.service.GameService;
-import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
 @Slf4j
 public class KakapMapGameService {
 
     private final KakaoMapRestaurantService kakaoMapService;
-    private final GooglePlaceService googlePlaceService;
     private final GameService gameService;
-    private final RestaurantRepository restaurantRepository;
     private final GameRepository gameRepository;
-    private final TransactionTemplate transactionTemplate;
-    private final RetryTemplate retryTemplate;
 
-    public KakapMapGameService(KakaoMapRestaurantService kakaoMapService, GooglePlaceService googlePlaceService,
-                               GameService gameService, RestaurantRepository restaurantRepository,
-                               GameRepository gameRepository, TransactionTemplate transactionTemplate,
-                               RetryTemplate retryTemplate) {
+    public KakapMapGameService(KakaoMapRestaurantService kakaoMapService,
+                               GameService gameService,
+                               GameRepository gameRepository) {
         this.kakaoMapService = kakaoMapService;
-        this.googlePlaceService = googlePlaceService;
         this.gameService = gameService;
-        this.restaurantRepository = restaurantRepository;
         this.gameRepository = gameRepository;
-        this.transactionTemplate = transactionTemplate;
-        this.retryTemplate = retryTemplate;
     }
 
     public MatchResult selectWinner(Long gameId, Long matchId, Long winnerId) {
