@@ -12,7 +12,7 @@
 
 🌟 **(평점/사진/가격: 구글 place api / 그외의 정보: 카카오 맵 api)** 🌟
 
-💻 **BLUE/GREEN 무중단 배포** + **DOCKER** + + **ROUTH53** + **VERCEL** + **EC2** + **RDS** + **GABIA** + **REACT** + **SPRINGBOOT**  (솔로 프로젝트)
+💻 **BLUE/GREEN 무중단 배포** + **DOCKER** + **ROUTH53** + **VERCEL** + **EC2** + **RDS** + **GABIA** + **REACT** + **SPRINGBOOT**  (추후 아키텍쳐 추가)
 
 ### 시연 영상 1
 ![최종-3](https://github.com/user-attachments/assets/e287c208-74b9-4e28-93ad-7a1331ed4ac4)
