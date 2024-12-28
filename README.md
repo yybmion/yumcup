@@ -14,6 +14,8 @@
 
 💻 **BLUE/GREEN 무중단 배포** + **DOCKER** + **ROUTH53** + **VERCEL** + **EC2** + **RDS** + **GABIA** + **REACT** + **SPRINGBOOT**  (추후 아키텍쳐 추가)
 
+![바탕화면](https://github.com/user-attachments/assets/f7f3a61f-35a1-4b33-9bb5-01b6b80fb448)
+
 ### 시연 영상 1
 ![최종-3](https://github.com/user-attachments/assets/e287c208-74b9-4e28-93ad-7a1331ed4ac4)
 
@@ -52,3 +54,4 @@ YUMCUP과 함께 맛있는 선택의 여정을 시작해보세요!
 **YUMCUP이 함께하겠습니다.**
 
 > https://www.yumcup.store/
+> 현재 aws 프리티어 제한으로 서비스 중지!
