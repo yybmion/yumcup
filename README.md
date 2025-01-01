@@ -22,6 +22,30 @@
 ### 시연 영상 2
 ![최종-4](https://github.com/user-attachments/assets/e88b8a7d-8a90-4aec-aa83-89061fdaff80)
 
+### 시퀀스 다이어그램
+
+1. 게임시작
+
+![1-2](https://github.com/user-attachments/assets/ac6ede02-092c-4ce3-a361-0ff450aa59a0)
+
+
+2. 게임진행 과정
+
+![1-3](https://github.com/user-attachments/assets/70ff255b-1381-4202-9b75-7aa126381982)
+
+
+
+3. 게임종료
+
+![1-4](https://github.com/user-attachments/assets/666f020e-693c-437d-b6d1-ff18c2fadd37)
+
+
+
+4. 음식점 상세 정보 조회
+
+![1-5](https://github.com/user-attachments/assets/1fdb80f7-2d99-4849-8020-d2e5468b189b)
+
+
 ## 왜 YUMCUP인가요?
 
 1. **즐거운 선택**
