@@ -6,19 +6,26 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
+    private static final long MAX_AGE = 3600L;
+
+    private static final String[] ALLOWED_ORIGINS = {
+            "https://yumcup.store",
+            "https://www.yumcup.store",
+            "http://localhost:3000",
+            "https://yumcup-omega.vercel.app"
+    };
+
+    private static final String[] ALLOWED_METHODS = {
+            "GET", "POST", "OPTIONS"
+    };
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                .allowedOrigins(
-                        "https://yumcup.store",
-                        "https://www.yumcup.store",
-                        "http://localhost:3000",
-                        "https://yumcup-omega.vercel.app"  // 끝의 슬래시 제거
-                )
-                .allowedMethods("GET", "POST", "OPTIONS")
+                .allowedOrigins(ALLOWED_ORIGINS)
+                .allowedMethods(ALLOWED_METHODS)
                 .allowedHeaders("*")
                 .exposedHeaders("*")
                 .allowCredentials(true)
-                .maxAge(3600); // preflight 캐시 시간 설정
+                .maxAge(MAX_AGE); // preflight 캐시 시간 설정
     }
 }
