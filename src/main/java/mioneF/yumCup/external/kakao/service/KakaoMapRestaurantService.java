@@ -16,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import mioneF.yumCup.domain.dto.response.GooglePlaceResponse;
 import mioneF.yumCup.domain.entity.Restaurant;
 import mioneF.yumCup.exception.InsufficientRestaurantsException;
+import mioneF.yumCup.exception.NotFoundRestaurantException;
 import mioneF.yumCup.external.kakao.dto.KakaoDocument;
 import mioneF.yumCup.external.kakao.dto.KakaoSearchResponse;
 import mioneF.yumCup.performance.Monitored;
@@ -62,7 +63,9 @@ public class KakaoMapRestaurantService {
             KakaoSearchResponse response = fetchRestaurantsPage(latitude, longitude, radius, page);
 
             if (response == null || response.documents().isEmpty()) {
-                break;
+                throw new NotFoundRestaurantException(
+                        String.format("Can't found any around restaurant")
+                );
             }
 
             // CompletableFuture 리스트 생성
