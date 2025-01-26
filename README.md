@@ -14,6 +14,10 @@
 
 💻 **BLUE/GREEN 무중단 배포** + **DOCKER** + **ROUTH53** + **VERCEL** + **EC2** + **RDS** + **GABIA** + **REACT** + **SPRINGBOOT**  (추후 아키텍쳐 추가)
 
+> [WIKI](https://github.com/yybmion/yumcup/wiki)
+
+> [DISCUSSION](https://github.com/yybmion/yumcup/discussions)
+
 ![바탕화면](https://github.com/user-attachments/assets/f7f3a61f-35a1-4b33-9bb5-01b6b80fb448)
 
 ### 시연 영상 1
