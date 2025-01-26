@@ -18,7 +18,9 @@ public enum PriceLevel {
     }
 
     public static String getDescription(Integer level) {
-        if (level == null) return "가격정보 없음";
+        if (level == null) {
+            return "가격정보 없음";
+        }
         return Arrays.stream(values())
                 .filter(p -> p.level == level)
                 .findFirst()

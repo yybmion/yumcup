@@ -5,6 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
@@ -13,12 +14,11 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import mioneF.yumCup.domain.dto.response.GooglePlaceResponse;
 
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(indexes = @jakarta.persistence.Index(name = "idx_kakao_id", columnList = "kakaoId", unique = true))
+@Table(indexes = @Index(name = "idx_kakao_id", columnList = "kakaoId", unique = true))
 public class Restaurant {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -94,6 +94,9 @@ public class Restaurant {
         this.isOpenNow = isOpenNow;
     }
 
+    /**
+     * 새로운 레스토랑을 생성할 때, 기존 레스토랑 정보를 수정할 때 updatedAt 값 업데이트
+     */
     @PreUpdate
     @PrePersist
     public void updateTimestamp() {
@@ -109,27 +112,6 @@ public class Restaurant {
         this.priceLevel = newInfo.getPriceLevel();
         this.isOpenNow = newInfo.getIsOpenNow();
     }
-
-//    public void updateWithGoogleInfo(GooglePlaceResponse googleResponse) {
-//        if (googleResponse != null &&
-//                googleResponse.candidates() != null &&
-//                !googleResponse.candidates().isEmpty()) {
-//
-//            GooglePlaceResponse.GooglePlace place = googleResponse.candidates().get(0);
-//
-//            // 평점 정보 업데이트
-//            this.rating = place.rating();
-//            this.ratingCount = place.user_ratings_total();
-//
-//            // 가격대 정보 업데이트
-//            this.priceLevel = place.price_level();
-//
-//            // 영업시간 정보 업데이트
-//            if (place.opening_hours() != null) {
-//                this.isOpenNow = place.opening_hours().open_now();
-//            }
-//        }
-//    }
 
     // 게임 관련 메서드
     public void incrementWinCount() {
