@@ -102,7 +102,8 @@ public class KakaoMapRestaurantService {
                                     // 4. 저장 실패시 (다른 쓰레드가 이미 저장한 경우) 다시 조회
                                     log.info("Restaurant was already saved by another thread: {}", doc.place_name());
                                     return restaurantRepository.findByKakaoId(doc.id())
-                                            .orElseThrow(() -> new RestaurantNotFoundException("Failed to process restaurant: " + doc.id()));
+                                            .orElseThrow(() -> new RestaurantNotFoundException(
+                                                    "Failed to process restaurant: " + doc.id()));
                                 }
                             } catch (Exception e) {
                                 log.error("Error processing restaurant {}: {}", doc.place_name(), e.getMessage());
