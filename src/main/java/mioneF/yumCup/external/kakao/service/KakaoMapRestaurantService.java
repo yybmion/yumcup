@@ -10,12 +10,17 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import mioneF.yumCup.domain.dto.response.GooglePlaceResponse;
 import mioneF.yumCup.domain.entity.Restaurant;
+import mioneF.yumCup.exception.ExternalApiException;
 import mioneF.yumCup.exception.InsufficientRestaurantsException;
-import mioneF.yumCup.exception.NotFoundRestaurantException;
+import mioneF.yumCup.exception.NoNearbyRestaurantsException;
+import mioneF.yumCup.exception.RestaurantNotFoundException;
+import mioneF.yumCup.exception.RestaurantProcessingException;
+import mioneF.yumCup.exception.RestaurantProcessingTimeoutException;
 import mioneF.yumCup.external.kakao.dto.KakaoDocument;
 import mioneF.yumCup.external.kakao.dto.KakaoSearchResponse;
 import mioneF.yumCup.performance.Monitored;
@@ -63,7 +68,7 @@ public class KakaoMapRestaurantService {
             KakaoSearchResponse response = fetchRestaurantsPage(latitude, longitude, radius, page);
 
             if (response == null || response.documents().isEmpty()) {
-                throw new NotFoundRestaurantException(
+                throw new NoNearbyRestaurantsException(
                         String.format("Can't found any around restaurant")
                 );
             }
@@ -97,7 +102,7 @@ public class KakaoMapRestaurantService {
                                     // 4. 저장 실패시 (다른 쓰레드가 이미 저장한 경우) 다시 조회
                                     log.info("Restaurant was already saved by another thread: {}", doc.place_name());
                                     return restaurantRepository.findByKakaoId(doc.id())
-                                            .orElseThrow(() -> new RuntimeException("Failed to process restaurant"));
+                                            .orElseThrow(() -> new RestaurantNotFoundException("Failed to process restaurant: " + doc.id()));
                                 }
                             } catch (Exception e) {
                                 log.error("Error processing restaurant {}: {}", doc.place_name(), e.getMessage());
@@ -165,7 +170,7 @@ public class KakaoMapRestaurantService {
                 restaurant = updateRestaurantWithGoogleInfo(restaurant, place);
             }
         } catch (Exception e) {
-            log.error("Error updating restaurant with Google data: ", e);
+            throw new ExternalApiException("Error updating restaurant with Google data:", e);
         }
 
         return restaurant;
@@ -244,9 +249,10 @@ public class KakaoMapRestaurantService {
     private Restaurant getRestaurantWithTimeout(CompletableFuture<Restaurant> future) {
         try {
             return future.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        } catch (TimeoutException e) {
+            throw new RestaurantProcessingTimeoutException("Restaurant information processing timeout");
         } catch (Exception e) {
-            log.error("Error processing restaurant: ", e);
-            return null;
+            throw new RestaurantProcessingException("Error processing restaurant information");
         }
     }
 }

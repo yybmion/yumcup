@@ -1,8 +1,11 @@
 package mioneF.yumCup.exception.Handler;
 
 import lombok.extern.slf4j.Slf4j;
+import mioneF.yumCup.exception.ExternalApiException;
 import mioneF.yumCup.exception.InsufficientRestaurantsException;
-import mioneF.yumCup.exception.NotFoundRestaurantException;
+import mioneF.yumCup.exception.NoNearbyRestaurantsException;
+import mioneF.yumCup.exception.RestaurantProcessingException;
+import mioneF.yumCup.exception.RestaurantProcessingTimeoutException;
 import mioneF.yumCup.exception.response.ErrorResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -20,10 +23,31 @@ public class GlobalExceptionHandler {
         return new ErrorResponse(e.getMessage());
     }
 
-    @ExceptionHandler(NotFoundRestaurantException.class)
+    @ExceptionHandler(NoNearbyRestaurantsException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ErrorResponse handleNotFoundRestaurants(NotFoundRestaurantException e) {
+    public ErrorResponse handleNotFoundRestaurants(NoNearbyRestaurantsException e) {
         log.warn(e.getMessage());
+        return new ErrorResponse(e.getMessage());
+    }
+
+    @ExceptionHandler(RestaurantProcessingTimeoutException.class)
+    @ResponseStatus(HttpStatus.REQUEST_TIMEOUT)
+    public ErrorResponse handleTimeout(RestaurantProcessingTimeoutException e) {
+        log.warn(e.getMessage());
+        return new ErrorResponse(e.getMessage());
+    }
+
+    @ExceptionHandler(ExternalApiException.class)
+    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+    public ErrorResponse handleExternalApiError(ExternalApiException e) {
+        log.error("외부 API 오류: {}", e.getMessage());
+        return new ErrorResponse(e.getMessage());
+    }
+
+    @ExceptionHandler(RestaurantProcessingException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ErrorResponse handleProcessingError(RestaurantProcessingException e) {
+        log.error(e.getMessage());
         return new ErrorResponse(e.getMessage());
     }
 
