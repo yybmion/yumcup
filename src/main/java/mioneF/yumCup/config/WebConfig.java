@@ -18,6 +18,7 @@ public class WebConfig implements WebMvcConfigurer {
     private static final String[] ALLOWED_METHODS = {
             "GET", "POST", "OPTIONS"
     };
+
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")

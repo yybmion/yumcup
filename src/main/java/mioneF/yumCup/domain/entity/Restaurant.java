@@ -95,8 +95,7 @@ public class Restaurant {
     }
 
     /**
-     * 새로운 레스토랑을 생성할 때, 기존 레스토랑 정보를 수정할 때
-     * updatedAt 값 업데이트
+     * 새로운 레스토랑을 생성할 때, 기존 레스토랑 정보를 수정할 때 updatedAt 값 업데이트
      */
     @PreUpdate
     @PrePersist

@@ -16,6 +16,9 @@ import mioneF.yumCup.repository.RestaurantRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * 게임 진행 로직을 추상화하여 다양한 토너먼트 방식을 지원 예정
+ */
 @Service
 @RequiredArgsConstructor
 public class GameService {
