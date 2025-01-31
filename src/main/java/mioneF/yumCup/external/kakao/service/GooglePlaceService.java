@@ -27,42 +27,32 @@ public class GooglePlaceService {
     }
 
     @Monitored
-    public GooglePlaceResponse findPlace(String kakaoId, String name, double lat, double lng) {
-        try {
-            log.info("Fetching place info from Google API for: {} (kakaoId: {})", name, kakaoId);
-            return fetchFromGoogleApi(name, lat, lng);
-        } catch (Exception e) {
-            log.error("Failed to fetch from Google API for {}: {}", name, e.getMessage());
-            throw new RuntimeException("Failed to fetch place details", e);
-        }
+    public GooglePlaceResponse findPlace(String kakaoId, String name, double lat, double lng) throws Exception {
+        log.info("Fetching place info from Google API for: {} (kakaoId: {})", name, kakaoId);
+        return fetchFromGoogleApi(name, lat, lng);
     }
 
     private GooglePlaceResponse fetchFromGoogleApi(String name, double lat, double lng) throws Exception {
-        try {
-            String response = googleWebClient.get()
-                    .uri(uriBuilder -> uriBuilder
-                            .path("/maps/api/place/findplacefromtext/json")
-                            .queryParam("input", name)
-                            .queryParam("inputtype", "textquery")
-                            .queryParam("locationbias", String.format("circle:100@%f,%f", lat, lng))
-                            .queryParam("fields",
-                                    "place_id,name,rating,user_ratings_total,photos,price_level,opening_hours/open_now")
-                            .queryParam("key", googleApiKey)
-                            .build())
-                    .retrieve()
-                    .bodyToMono(String.class)
-                    .block();
+        String response = googleWebClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/maps/api/place/findplacefromtext/json")
+                        .queryParam("input", name)
+                        .queryParam("inputtype", "textquery")
+                        .queryParam("locationbias", String.format("circle:100@%f,%f", lat, lng))
+                        .queryParam("fields",
+                                "place_id,name,rating,user_ratings_total,photos,price_level,opening_hours/open_now")
+                        .queryParam("key", googleApiKey)
+                        .build())
+                .retrieve()
+                .bodyToMono(String.class)
+                .block();
 
-            GooglePlaceResponse googleResponse = new ObjectMapper().readValue(response, GooglePlaceResponse.class);
-            log.info("Google API response for {}: status={}, candidates={}",
-                    name,
-                    googleResponse.status(),
-                    googleResponse.candidates() != null ? googleResponse.candidates().size() : 0);
-            return googleResponse;
-        } catch (Exception e) {
-            log.error("Failed to fetch from Google API for {}: {}", name, e.getMessage());
-            throw e;
-        }
+        GooglePlaceResponse googleResponse = new ObjectMapper().readValue(response, GooglePlaceResponse.class);
+        log.info("Google API response for {}: status={}, candidates={}",
+                name,
+                googleResponse.status(),
+                googleResponse.candidates() != null ? googleResponse.candidates().size() : 0);
+        return googleResponse;
     }
 
     public String getPhotoUrl(String photoReference) {
