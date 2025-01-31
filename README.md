@@ -12,11 +12,14 @@
 
 🌟 **(평점/사진/가격: 구글 place api / 그외의 정보: 카카오 맵 api)** 🌟
 
-💻 **BLUE/GREEN 무중단 배포** + **DOCKER** + **ROUTH53** + **VERCEL** + **EC2** + **RDS** + **GABIA** + **REACT** + **SPRINGBOOT**  (추후 아키텍쳐 추가)
+💻 **BLUE/GREEN 무중단 배포** + **DOCKER** + **ROUTH53** + **VERCEL** + **EC2** + **RDS** + **GABIA** + **REACT** + **SPRINGBOOT**
 
-> [WIKI](https://github.com/yybmion/yumcup/wiki)
+- YUMCUP의 방향
 
 > [DISCUSSION](https://github.com/yybmion/yumcup/discussions)
+
+> [WIKI](https://github.com/yybmion/yumcup/wiki)
+___
 
 ![바탕화면](https://github.com/user-attachments/assets/f7f3a61f-35a1-4b33-9bb5-01b6b80fb448)
 
