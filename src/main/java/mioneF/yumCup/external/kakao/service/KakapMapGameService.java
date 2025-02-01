@@ -37,20 +37,16 @@ public class KakapMapGameService {
     }
 
     public GameResponse startLocationBasedGame(LocationRequest request) {
-        try {
-            // 1) API 호출 부분 분리 - 트랜잭션 없이 실행
-            List<Restaurant> restaurants = searchAndPrepareRestaurants(
-                    request.latitude(),
-                    request.longitude(),
-                    request.radius()
-            );
 
-            // 2) DB 작업만 트랜잭션으로 처리
-            return createGameWithRestaurants(restaurants);
-        } catch (Exception e) {
-            log.error("Error in startLocationBasedGame: ", e);
-            throw new RuntimeException("Failed to start game: " + e.getMessage());
-        }
+        // 1) API 호출 부분 분리 - 트랜잭션 없이 실행
+        List<Restaurant> restaurants = searchAndPrepareRestaurants(
+                request.latitude(),
+                request.longitude(),
+                request.radius()
+        );
+
+        // 2) DB 작업만 트랜잭션으로 처리
+        return createGameWithRestaurants(restaurants);
     }
 
     public List<Restaurant> searchAndPrepareRestaurants(Double latitude, Double longitude, Integer radius) {
