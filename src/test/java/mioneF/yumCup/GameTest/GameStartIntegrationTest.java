@@ -1,4 +1,4 @@
-package mioneF.yumCup;
+package mioneF.yumCup.GameTest;
 
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
