@@ -1,7 +1,13 @@
 package mioneF.yumCup.external.kakao.service;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+
+import ch.hsr.geohash.GeoHash;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import mioneF.yumCup.domain.MatchResult;
 import mioneF.yumCup.domain.dto.request.LocationRequest;
@@ -13,6 +19,7 @@ import mioneF.yumCup.domain.entity.Match;
 import mioneF.yumCup.domain.entity.Restaurant;
 import mioneF.yumCup.repository.GameRepository;
 import mioneF.yumCup.service.GameService;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,77 +27,136 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class KakapMapGameService {
 
-    private final KakaoMapRestaurantService kakaoMapService;
-    private final GameService gameService;
-    private final GameRepository gameRepository;
+	private final KakaoMapRestaurantService kakaoMapService;
+	private final GameService gameService;
+	private final GameRepository gameRepository;
+	private final StringRedisTemplate redisTemplate;
+	private final ObjectMapper objectMapper;
 
-    public KakapMapGameService(KakaoMapRestaurantService kakaoMapService,
-                               GameService gameService,
-                               GameRepository gameRepository) {
-        this.kakaoMapService = kakaoMapService;
-        this.gameService = gameService;
-        this.gameRepository = gameRepository;
-    }
+	private static final int GEOHASH_PRECISION = 6;
 
-    public MatchResult selectWinner(Long gameId, Long matchId, Long winnerId) {
-        return gameService.selectWinner(gameId, matchId, winnerId);
-    }
+	public KakapMapGameService(
+			KakaoMapRestaurantService kakaoMapService,
+			GameService gameService,
+			GameRepository gameRepository,
+			StringRedisTemplate redisTemplate,
+			ObjectMapper objectMapper) {
+		this.kakaoMapService = kakaoMapService;
+		this.gameService = gameService;
+		this.gameRepository = gameRepository;
+		this.redisTemplate = redisTemplate;
+		this.objectMapper = objectMapper;
+	}
 
-    public GameResponse startLocationBasedGame(LocationRequest request) {
+	public MatchResult selectWinner(Long gameId, Long matchId, Long winnerId) {
+		return gameService.selectWinner( gameId, matchId, winnerId );
+	}
 
-        // 1) API 호출 부분 분리 - 트랜잭션 없이 실행
-        List<Restaurant> restaurants = searchAndPrepareRestaurants(
-                request.latitude(),
-                request.longitude(),
-                request.radius()
-        );
+	public GameResponse startLocationBasedGame(LocationRequest request) {
+		List<Restaurant> restaurants = searchAndPrepareRestaurants(
+				request.latitude(),
+				request.longitude(),
+				request.radius()
+		);
+		return createGameWithRestaurants( restaurants );
+	}
 
-        // 2) DB 작업만 트랜잭션으로 처리
-        return createGameWithRestaurants(restaurants);
-    }
+	public List<Restaurant> searchAndPrepareRestaurants(
+			Double latitude, Double longitude, Integer radius) {
 
-    public List<Restaurant> searchAndPrepareRestaurants(Double latitude, Double longitude, Integer radius) {
-        List<Restaurant> kakaoRestaurants = kakaoMapService.searchNearbyRestaurants(latitude, longitude, radius);
-        return kakaoRestaurants;
-    }
+		String geohash = generateGeohash( latitude, longitude, GEOHASH_PRECISION );
 
-    // DB 작업 부분 - 트랜잭션 처리
-    @Transactional
-    public GameResponse createGameWithRestaurants(List<Restaurant> restaurants) {
-        // 이미 저장된 Restaurant들을 사용하므로 추가 저장 없이 진행
-        List<Restaurant> selectedRestaurants = restaurants.stream()
-                .limit(16)
-                .collect(Collectors.toList());
+		log.info( "Location: ({}, {})", latitude, longitude );
+		log.info( "Geohash: {}", geohash );
 
-        Game game = Game.builder()
-                .totalRounds(16)
-                .build();
+		String cacheKey = String.format(
+				"restaurants:geohash:%s:%s",
+				geohash, radius
+		);
 
-        for (int i = 0; i < selectedRestaurants.size(); i += 2) {
-            Match match = Match.builder()
-                    .restaurant1(selectedRestaurants.get(i))
-                    .restaurant2(selectedRestaurants.get(i + 1))
-                    .round(16)
-                    .matchOrder((i / 2) + 1)
-                    .build();
+		log.info( "Cache key: {}", cacheKey );
 
-            game.addMatch(match);
-        }
+		try {
+			String cached = redisTemplate.opsForValue().get( cacheKey );
+			if ( cached != null ) {
+				log.info( "Cache HIT - Geohash: {}", geohash );
+				List<Restaurant> restaurants = objectMapper.readValue(
+						cached,
+						new TypeReference<List<Restaurant>>() {
+						}
+				);
+				log.info( "Loaded {} restaurants from cache", restaurants.size() );
+				return restaurants;
+			}
+		}
+		catch (Exception e) {
+			log.warn( "Redis read failed: {}", e.getMessage() );
+		}
 
-        Game savedGame = gameRepository.save(game);
-        Match firstMatch = savedGame.getMatches().get(0);
+		log.info( "Cache MISS - Fetching from DB/API for geohash: {}", geohash );
+		List<Restaurant> restaurants = kakaoMapService.searchNearbyRestaurants(
+				latitude, longitude, radius );
 
-        return new GameResponse(
-                savedGame.getId(),
-                16,
-                new MatchResponse(
-                        firstMatch.getId(),
-                        RestaurantResponse.from(firstMatch.getRestaurant1()),
-                        RestaurantResponse.from(firstMatch.getRestaurant2()),
-                        firstMatch.getRound(),
-                        firstMatch.getMatchOrder()
-                ),
-                savedGame.getStatus()
-        );
-    }
+		try {
+			String json = objectMapper.writeValueAsString( restaurants );
+			redisTemplate.opsForValue().set( cacheKey, json, 1, TimeUnit.HOURS );
+			log.info(
+					"Saved to Redis with geohash: {} ({} restaurants)",
+					geohash, restaurants.size()
+			);
+		}
+		catch (JsonProcessingException e) {
+			log.warn( "Redis write failed: {}", e.getMessage() );
+		}
+
+		return restaurants;
+	}
+
+	/**
+	 * 위도/경도를 Geohash로 변환
+	 *
+	 * @return Geohash 문자열
+	 */
+	private String generateGeohash(Double latitude, Double longitude, int precision) {
+		return GeoHash.withCharacterPrecision( latitude, longitude, precision )
+				.toBase32();
+	}
+
+	@Transactional
+	public GameResponse createGameWithRestaurants(List<Restaurant> restaurants) {
+		List<Restaurant> selectedRestaurants = restaurants.stream()
+				.limit( 16 )
+				.collect( Collectors.toList() );
+
+		Game game = Game.builder()
+				.totalRounds( 16 )
+				.build();
+
+		for ( int i = 0; i < selectedRestaurants.size(); i += 2 ) {
+			Match match = Match.builder()
+					.restaurant1( selectedRestaurants.get( i ) )
+					.restaurant2( selectedRestaurants.get( i + 1 ) )
+					.round( 16 )
+					.matchOrder( ( i / 2 ) + 1 )
+					.build();
+
+			game.addMatch( match );
+		}
+
+		Game savedGame = gameRepository.save( game );
+		Match firstMatch = savedGame.getMatches().get( 0 );
+
+		return new GameResponse(
+				savedGame.getId(),
+				16,
+				new MatchResponse(
+						firstMatch.getId(),
+						RestaurantResponse.from( firstMatch.getRestaurant1() ),
+						RestaurantResponse.from( firstMatch.getRestaurant2() ),
+						firstMatch.getRound(),
+						firstMatch.getMatchOrder()
+				),
+				savedGame.getStatus()
+		);
+	}
 }

@@ -27,3 +27,7 @@ out/
 !**/src/test/**/out/
 
 src/test/resources/application-test.yml
+
+assets
+
+load-test-simple.js
