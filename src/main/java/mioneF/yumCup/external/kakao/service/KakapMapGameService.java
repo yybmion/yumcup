@@ -1,11 +1,11 @@
 package mioneF.yumCup.external.kakao.service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import ch.hsr.geohash.GeoHash;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -18,6 +18,7 @@ import mioneF.yumCup.domain.entity.Game;
 import mioneF.yumCup.domain.entity.Match;
 import mioneF.yumCup.domain.entity.Restaurant;
 import mioneF.yumCup.repository.GameRepository;
+import mioneF.yumCup.repository.RestaurantRepository;
 import mioneF.yumCup.service.GameService;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -30,6 +31,7 @@ public class KakapMapGameService {
 	private final KakaoMapRestaurantService kakaoMapService;
 	private final GameService gameService;
 	private final GameRepository gameRepository;
+	private final RestaurantRepository restaurantRepository;
 	private final StringRedisTemplate redisTemplate;
 	private final ObjectMapper objectMapper;
 
@@ -39,11 +41,13 @@ public class KakapMapGameService {
 			KakaoMapRestaurantService kakaoMapService,
 			GameService gameService,
 			GameRepository gameRepository,
+			RestaurantRepository restaurantRepository,
 			StringRedisTemplate redisTemplate,
 			ObjectMapper objectMapper) {
 		this.kakaoMapService = kakaoMapService;
 		this.gameService = gameService;
 		this.gameRepository = gameRepository;
+		this.restaurantRepository = restaurantRepository;
 		this.redisTemplate = redisTemplate;
 		this.objectMapper = objectMapper;
 	}
@@ -65,61 +69,54 @@ public class KakapMapGameService {
 			Double latitude, Double longitude, Integer radius) {
 
 		String geohash = generateGeohash( latitude, longitude, GEOHASH_PRECISION );
-
-		log.info( "Location: ({}, {})", latitude, longitude );
-		log.info( "Geohash: {}", geohash );
-
-		String cacheKey = String.format(
-				"restaurants:geohash:%s:%s",
-				geohash, radius
-		);
+		String cacheKey = "restaurants:kakaoIds:geohash:" + geohash + ":" + radius;
 
 		log.info( "Cache key: {}", cacheKey );
 
 		try {
 			String cached = redisTemplate.opsForValue().get( cacheKey );
 			if ( cached != null ) {
-				log.info( "Cache HIT - Geohash: {}", geohash );
-				List<Restaurant> restaurants = objectMapper.readValue(
-						cached,
-						new TypeReference<List<Restaurant>>() {
+				List<String> kakaoIds = objectMapper.readValue(
+						cached, new TypeReference<List<String>>() {
 						}
 				);
-				log.info( "Loaded {} restaurants from cache", restaurants.size() );
-				return restaurants;
+				List<Restaurant> restaurants = restaurantRepository.findByKakaoIdIn( kakaoIds );
+
+				if ( restaurants.size() == kakaoIds.size() ) {
+					Map<String, Restaurant> map = restaurants.stream()
+							.collect( Collectors.toMap( Restaurant::getKakaoId, r -> r ) );
+					return kakaoIds.stream().map( map::get ).collect( Collectors.toList() );
+				}
+				redisTemplate.delete( cacheKey );
 			}
 		}
 		catch (Exception e) {
 			log.warn( "Redis read failed: {}", e.getMessage() );
 		}
 
-		log.info( "Cache MISS - Fetching from DB/API for geohash: {}", geohash );
-		List<Restaurant> restaurants = kakaoMapService.searchNearbyRestaurants(
-				latitude, longitude, radius );
+		List<Restaurant> restaurants = kakaoMapService.searchNearbyRestaurants( latitude, longitude, radius );
 
 		try {
-			String json = objectMapper.writeValueAsString( restaurants );
+			List<String> kakaoIds = restaurants.stream()
+					.map( Restaurant::getKakaoId )
+					.collect( Collectors.toList() );
+
+			String json = objectMapper.writeValueAsString( kakaoIds );
+
 			redisTemplate.opsForValue().set( cacheKey, json, 1, TimeUnit.HOURS );
-			log.info(
-					"Saved to Redis with geohash: {} ({} restaurants)",
-					geohash, restaurants.size()
-			);
+
+			String verify = redisTemplate.opsForValue().get( cacheKey );
+
 		}
-		catch (JsonProcessingException e) {
-			log.warn( "Redis write failed: {}", e.getMessage() );
+		catch (Exception e) {
+			log.error( "Redis write failed: ", e );
 		}
 
 		return restaurants;
 	}
 
-	/**
-	 * 위도/경도를 Geohash로 변환
-	 *
-	 * @return Geohash 문자열
-	 */
 	private String generateGeohash(Double latitude, Double longitude, int precision) {
-		return GeoHash.withCharacterPrecision( latitude, longitude, precision )
-				.toBase32();
+		return GeoHash.withCharacterPrecision( latitude, longitude, precision ).toBase32();
 	}
 
 	@Transactional
@@ -128,9 +125,7 @@ public class KakapMapGameService {
 				.limit( 16 )
 				.collect( Collectors.toList() );
 
-		Game game = Game.builder()
-				.totalRounds( 16 )
-				.build();
+		Game game = Game.builder().totalRounds( 16 ).build();
 
 		for ( int i = 0; i < selectedRestaurants.size(); i += 2 ) {
 			Match match = Match.builder()
@@ -139,7 +134,6 @@ public class KakapMapGameService {
 					.round( 16 )
 					.matchOrder( ( i / 2 ) + 1 )
 					.build();
-
 			game.addMatch( match );
 		}
 

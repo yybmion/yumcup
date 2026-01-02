@@ -13,6 +13,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import mioneF.yumCup.domain.dto.response.GooglePlaceResponse;
 import mioneF.yumCup.domain.entity.Restaurant;
@@ -49,13 +50,24 @@ public class KakaoMapRestaurantService {
 		this.kakaoWebClient = kakaoWebClient;
 		this.googlePlaceService = googlePlaceService;
 		this.restaurantRepository = restaurantRepository;
-		this.executorService = Executors.newFixedThreadPool(
-				Runtime.getRuntime().availableProcessors() * 2
-		);
+		this.executorService = Executors.newVirtualThreadPerTaskExecutor();
+	}
+
+	@PreDestroy
+	public void shutdown() {
+		executorService.shutdown();
+		try {
+			if ( !executorService.awaitTermination( 10, TimeUnit.SECONDS ) ) {
+				executorService.shutdownNow();
+			}
+		}
+		catch (InterruptedException e) {
+			executorService.shutdownNow();
+			Thread.currentThread().interrupt();
+		}
 	}
 
 	@Monitored
-	@Transactional
 	public List<Restaurant> searchNearbyRestaurants(Double latitude, Double longitude, Integer radius) {
 		List<Restaurant> allRestaurants = new ArrayList<>();
 		int page = 1;
@@ -64,9 +76,7 @@ public class KakaoMapRestaurantService {
 			KakaoSearchResponse response = fetchRestaurantsPage( latitude, longitude, radius, page );
 
 			if ( response == null || response.documents().isEmpty() ) {
-				throw new NoNearbyRestaurantsException(
-						String.format( "Can't found any around restaurant" )
-				);
+				throw new NoNearbyRestaurantsException( "Can't found any around restaurant" );
 			}
 
 			log.info( "Processing {} restaurants in parallel", response.documents().size() );
@@ -88,43 +98,8 @@ public class KakaoMapRestaurantService {
 			List<Restaurant> pageRestaurants = collectRestaurantResults( futures );
 			log.info( "Completed processing {} restaurants", pageRestaurants.size() );
 
-			List<String> kakaoIds = pageRestaurants.stream()
-					.map( Restaurant::getKakaoId )
-					.collect( Collectors.toList() );
-
-			List<Restaurant> existingRestaurants = restaurantRepository.findByKakaoIdIn( kakaoIds );
-
-			Map<String, Restaurant> existingMap = existingRestaurants.stream()
-					.collect( Collectors.toMap( Restaurant::getKakaoId, Function.identity() ) );
-
-			List<Restaurant> newRestaurants = new ArrayList<>();
-			List<Restaurant> restaurantsToUpdate = new ArrayList<>();
-
-			for ( Restaurant restaurant : pageRestaurants ) {
-				Restaurant existing = existingMap.get( restaurant.getKakaoId() );
-
-				if ( existing == null ) {
-					newRestaurants.add( restaurant );
-				}
-				else {
-					if ( existing.getUpdatedAt().isBefore( LocalDateTime.now().minusDays( 14 ) ) ) {
-						existing.updateWithNewInfo( restaurant );
-						restaurantsToUpdate.add( existing );
-					}
-					allRestaurants.add( existing );
-				}
-			}
-
-			if ( !newRestaurants.isEmpty() ) {
-				log.info( "Batch inserting {} new restaurants", newRestaurants.size() );
-				List<Restaurant> savedRestaurants = restaurantRepository.saveAll( newRestaurants );
-				allRestaurants.addAll( savedRestaurants );
-			}
-
-			if ( !restaurantsToUpdate.isEmpty() ) {
-				log.info( "Batch updating {} restaurants", restaurantsToUpdate.size() );
-				restaurantRepository.saveAll( restaurantsToUpdate );
-			}
+			List<Restaurant> savedRestaurants = saveOrUpdateRestaurants( pageRestaurants );
+			allRestaurants.addAll( savedRestaurants );
 
 			if ( response.meta().is_end() ) {
 				break;
@@ -140,6 +115,50 @@ public class KakaoMapRestaurantService {
 
 		Collections.shuffle( allRestaurants );
 		return allRestaurants;
+	}
+
+	@Transactional
+	protected List<Restaurant> saveOrUpdateRestaurants(List<Restaurant> pageRestaurants) {
+		List<String> kakaoIds = pageRestaurants.stream()
+				.map( Restaurant::getKakaoId )
+				.collect( Collectors.toList() );
+
+		List<Restaurant> existingRestaurants = restaurantRepository.findByKakaoIdIn( kakaoIds );
+
+		Map<String, Restaurant> existingMap = existingRestaurants.stream()
+				.collect( Collectors.toMap( Restaurant::getKakaoId, Function.identity() ) );
+
+		List<Restaurant> newRestaurants = new ArrayList<>();
+		List<Restaurant> restaurantsToUpdate = new ArrayList<>();
+		List<Restaurant> result = new ArrayList<>();
+
+		for ( Restaurant restaurant : pageRestaurants ) {
+			Restaurant existing = existingMap.get( restaurant.getKakaoId() );
+
+			if ( existing == null ) {
+				newRestaurants.add( restaurant );
+			}
+			else {
+				if ( existing.getUpdatedAt().isBefore( LocalDateTime.now().minusDays( 14 ) ) ) {
+					existing.updateWithNewInfo( restaurant );
+					restaurantsToUpdate.add( existing );
+				}
+				result.add( existing );
+			}
+		}
+
+		if ( !newRestaurants.isEmpty() ) {
+			log.info( "Batch inserting {} new restaurants", newRestaurants.size() );
+			List<Restaurant> savedRestaurants = restaurantRepository.saveAll( newRestaurants );
+			result.addAll( savedRestaurants );
+		}
+
+		if ( !restaurantsToUpdate.isEmpty() ) {
+			log.info( "Batch updating {} restaurants", restaurantsToUpdate.size() );
+			restaurantRepository.saveAll( restaurantsToUpdate );
+		}
+
+		return result;
 	}
 
 	private KakaoSearchResponse fetchRestaurantsPage(Double latitude, Double longitude, Integer radius, int page) {
