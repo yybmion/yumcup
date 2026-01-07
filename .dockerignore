@@ -1,0 +1,10 @@
+.git
+.gradle
+build
+!build/libs/*.jar
+*.md
+.gitignore
+.idea
+*.iml
+assets
+load-test-simple.js
