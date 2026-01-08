@@ -12,7 +12,8 @@ public class WebConfig implements WebMvcConfigurer {
             "https://yumcup.store",
             "https://www.yumcup.store",
             "http://localhost:3000",
-            "https://yumcup-omega.vercel.app"
+            "https://yumcup-omega.vercel.app",
+			"https://yumcup-production.up.railway.app"
     };
 
     private static final String[] ALLOWED_METHODS = {
