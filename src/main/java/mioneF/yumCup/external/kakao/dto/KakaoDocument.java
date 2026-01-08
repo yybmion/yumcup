@@ -1,5 +1,8 @@
 package mioneF.yumCup.external.kakao.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
 public record KakaoDocument(
 		String id,                // 장소 ID
 		String place_name,        // 장소명
