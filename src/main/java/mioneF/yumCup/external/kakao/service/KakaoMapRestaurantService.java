@@ -14,6 +14,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import jakarta.annotation.PreDestroy;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import mioneF.yumCup.domain.dto.response.GooglePlaceResponse;
 import mioneF.yumCup.domain.entity.Restaurant;
@@ -23,35 +24,24 @@ import mioneF.yumCup.exception.RestaurantProcessingException;
 import mioneF.yumCup.exception.RestaurantProcessingTimeoutException;
 import mioneF.yumCup.external.kakao.dto.KakaoDocument;
 import mioneF.yumCup.external.kakao.dto.KakaoSearchResponse;
+import mioneF.yumCup.infrastructure.api.KakaoLocalApiClient;
 import mioneF.yumCup.performance.Monitored;
 import mioneF.yumCup.repository.RestaurantRepository;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.reactive.function.client.WebClient;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class KakaoMapRestaurantService {
-	private static final String CATEGORY_GROUP_CODE = "FD6";
-	private static final int PAGE_SIZE = 15;
 	private static final int REQUIRED_RESTAURANTS = 16;
 	private static final int TIMEOUT_SECONDS = 5;
 
-	private final ExecutorService executorService;
-	private final WebClient kakaoWebClient;
+	private final KakaoLocalApiClient kakaoApiClient;
 	private final GooglePlaceService googlePlaceService;
 	private final RestaurantRepository restaurantRepository;
 
-	public KakaoMapRestaurantService(
-			@Qualifier("kakaoWebClient") WebClient kakaoWebClient,
-			GooglePlaceService googlePlaceService,
-			RestaurantRepository restaurantRepository) {
-		this.kakaoWebClient = kakaoWebClient;
-		this.googlePlaceService = googlePlaceService;
-		this.restaurantRepository = restaurantRepository;
-		this.executorService = Executors.newVirtualThreadPerTaskExecutor();
-	}
+	private final ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor();
 
 	@PreDestroy
 	public void shutdown() {
@@ -162,25 +152,20 @@ public class KakaoMapRestaurantService {
 	}
 
 	private KakaoSearchResponse fetchRestaurantsPage(Double latitude, Double longitude, Integer radius, int page) {
-		return kakaoWebClient.get()
-				.uri( uriBuilder -> uriBuilder
-						.path( "/v2/local/search/category.json" )
-						.queryParam( "category_group_code", CATEGORY_GROUP_CODE )
-						.queryParam( "x", longitude )
-						.queryParam( "y", latitude )
-						.queryParam( "radius", radius )
-						.queryParam( "size", PAGE_SIZE )
-						.queryParam( "page", page )
-						.build() )
-				.retrieve()
-				.bodyToMono( KakaoSearchResponse.class )
-				.block();
+		return kakaoApiClient.searchByCategory(
+				latitude,
+				longitude,
+				radius,
+				page,
+				KakaoSearchResponse.class
+		);
 	}
 
 	private Restaurant createRestaurantWithGoogleInfo(KakaoDocument doc) {
 		Restaurant restaurant = createBaseRestaurant( doc );
 
 		try {
+			// 이제 Exception을 던지지 않음
 			GooglePlaceResponse googleResponse = googlePlaceService.findPlace(
 					doc.id(),
 					doc.place_name(),
