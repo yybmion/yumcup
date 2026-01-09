@@ -25,17 +25,6 @@ public class KakaoLocalApiClient extends AbstractWebClientApiClient {
 
 	/**
 	 * 카테고리 기반 장소 검색
-	 *
-	 * <p>주어진 위치 주변의 음식점을 검색합니다.</p>
-	 *
-	 * @param latitude 중심 위도
-	 * @param longitude 중심 경도
-	 * @param radius 반경 (미터)
-	 * @param page 페이지 번호 (1부터 시작)
-	 * @param responseType 응답 타입 클래스
-	 * @param <T> 응답 타입
-	 *
-	 * @return 파싱된 응답 객체
 	 */
 	public <T> T searchByCategory(
 			double latitude,
@@ -50,13 +39,6 @@ public class KakaoLocalApiClient extends AbstractWebClientApiClient {
 
 	/**
 	 * 카테고리 검색 쿼리 파라미터 생성
-	 *
-	 * @param latitude 위도
-	 * @param longitude 경도
-	 * @param radius 반경 (미터)
-	 * @param page 페이지 번호
-	 *
-	 * @return 쿼리 파라미터 Map
 	 */
 	private Map<String, String> buildCategorySearchParams(
 			double latitude,

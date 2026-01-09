@@ -31,16 +31,6 @@ public class GooglePlacesApiClient extends AbstractWebClientApiClient {
 
 	/**
 	 * Google Places API - Find Place 요청
-	 *
-	 * <p>주어진 이름과 위치로 장소를 검색합니다.</p>
-	 *
-	 * @param name 장소 이름 (예: "스타벅스 강남점")
-	 * @param lat 위도
-	 * @param lng 경도
-	 * @param responseType 응답 타입 클래스
-	 * @param <T> 응답 타입
-	 *
-	 * @return 파싱된 응답 객체
 	 */
 	public <T> T findPlace(String name, double lat, double lng, Class<T> responseType) {
 		Map<String, String> params = buildFindPlaceParams( name, lat, lng );
@@ -49,12 +39,6 @@ public class GooglePlacesApiClient extends AbstractWebClientApiClient {
 
 	/**
 	 * Find Place API 쿼리 파라미터 생성
-	 *
-	 * @param name 장소 이름
-	 * @param lat 위도
-	 * @param lng 경도
-	 *
-	 * @return 쿼리 파라미터 Map
 	 */
 	private Map<String, String> buildFindPlaceParams(String name, double lat, double lng) {
 		Map<String, String> params = new HashMap<>();
@@ -68,12 +52,6 @@ public class GooglePlacesApiClient extends AbstractWebClientApiClient {
 
 	/**
 	 * Google Places Photo URL 생성
-	 *
-	 * <p>Photo Reference를 실제 이미지 URL로 변환합니다.</p>
-	 *
-	 * @param photoReference Google Places API에서 받은 photo_reference
-	 *
-	 * @return 이미지 URL (최대 너비 400px)
 	 */
 	public String generatePhotoUrl(String photoReference) {
 		if ( photoReference == null || photoReference.isEmpty() ) {

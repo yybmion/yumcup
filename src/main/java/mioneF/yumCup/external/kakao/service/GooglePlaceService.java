@@ -19,13 +19,6 @@ public class GooglePlaceService {
 
 	/**
 	 * Google Places API로 장소 정보 조회
-	 *
-	 * @param kakaoId 카카오 장소 ID (로깅용)
-	 * @param name 장소 이름
-	 * @param lat 위도
-	 * @param lng 경도
-	 *
-	 * @return Google Places API 응답
 	 */
 	@Monitored
 	public GooglePlaceResponse findPlace(String kakaoId, String name, double lat, double lng) {
@@ -45,10 +38,6 @@ public class GooglePlaceService {
 
 	/**
 	 * 사진 URL 생성
-	 *
-	 * @param photoReference Google Places API의 photo_reference
-	 *
-	 * @return 이미지 URL
 	 */
 	public String getPhotoUrl(String photoReference) {
 		if ( photoReference == null ) {

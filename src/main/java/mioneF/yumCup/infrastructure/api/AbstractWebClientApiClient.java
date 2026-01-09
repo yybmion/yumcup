@@ -55,13 +55,6 @@ public abstract class AbstractWebClientApiClient implements ExternalApiClient {
 
 	/**
 	 * 실제 GET 요청 수행
-	 *
-	 * <p>Template Method: 자식 클래스에서 오버라이드하여 커스터마이징 가능</p>
-	 *
-	 * @param url 요청 URL
-	 * @param responseType 응답 타입
-	 *
-	 * @return 파싱된 응답 객체
 	 */
 	protected <T> T performGet(String url, Class<T> responseType) {
 		try {
@@ -145,17 +138,6 @@ public abstract class AbstractWebClientApiClient implements ExternalApiClient {
 
 	/**
 	 * 재시도 로직 (Exponential Backoff)
-	 *
-	 * <p>재시도 전략:</p>
-	 * <ul>
-	 *   <li>1차 실패: 1초 대기 후 재시도</li>
-	 *   <li>2차 실패: 2초 대기 후 재시도</li>
-	 *   <li>3차 실패: 최종 실패</li>
-	 * </ul>
-	 *
-	 * @param apiCall 실행할 API 호출
-	 *
-	 * @return API 호출 결과
 	 */
 	private <T> T executeWithRetry(Supplier<T> apiCall) {
 		Exception lastException = null;
@@ -197,18 +179,6 @@ public abstract class AbstractWebClientApiClient implements ExternalApiClient {
 
 	/**
 	 * URL에 쿼리 파라미터 추가
-	 *
-	 * <p>예시:</p>
-	 * <pre>
-	 * baseUrl: "/api/search"
-	 * params: {latitude: "37.5", longitude: "127.0"}
-	 * result: "/api/search?latitude=37.5&longitude=127.0"
-	 * </pre>
-	 *
-	 * @param baseUrl 기본 URL
-	 * @param params 쿼리 파라미터
-	 *
-	 * @return 완성된 URL
 	 */
 	private String buildUrlWithParams(String baseUrl, Map<String, String> params) {
 		if ( params == null || params.isEmpty() ) {
@@ -228,8 +198,6 @@ public abstract class AbstractWebClientApiClient implements ExternalApiClient {
 
 	/**
 	 * API 이름 반환 (로깅용)
-	 *
-	 * @return API 이름 (예: "Google Places API", "Kakao Local API")
 	 */
 	protected abstract String getApiName();
 }
