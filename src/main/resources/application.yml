@@ -112,6 +112,10 @@ spring:
         max-size: 10
         queue-capacity: 100
 
+  threads:
+    virtual:
+      enabled: true
+
 kakao:
   api:
     key: ${KAKAO_REST_API_KEY}
