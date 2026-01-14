@@ -3,6 +3,7 @@ package mioneF.yumCup.external.kakao.service;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -10,6 +11,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +21,7 @@ import mioneF.yumCup.exception.InsufficientRestaurantsException;
 import mioneF.yumCup.exception.NoNearbyRestaurantsException;
 import mioneF.yumCup.exception.RestaurantProcessingException;
 import mioneF.yumCup.exception.RestaurantProcessingTimeoutException;
+import mioneF.yumCup.external.kakao.dto.KakaoDocument;
 import mioneF.yumCup.external.kakao.dto.KakaoSearchResponse;
 import mioneF.yumCup.infrastructure.api.KakaoLocalApiClient;
 import mioneF.yumCup.infrastructure.cache.GeohashCacheStrategy;
@@ -34,6 +37,7 @@ import org.springframework.stereotype.Service;
 public class KakaoMapRestaurantService {
 
 	private static final int REQUIRED_RESTAURANTS = 16;
+	private static final int KAKAO_PAGE_SIZE = 15;
 	private static final int TIMEOUT_SECONDS = 5;
 	private static final long CACHE_TTL_SECONDS = 3600;
 
@@ -103,71 +107,83 @@ public class KakaoMapRestaurantService {
 	}
 
 	/**
-	 * Kakao API로 레스토랑 수집
+	 * Kakao API로 레스토랑 수집 (병렬 페이징 + 일괄 비동기 처리)
 	 */
 	private List<Restaurant> fetchRestaurantsFromKakao(Double latitude, Double longitude, Integer radius) {
-		List<Restaurant> allRestaurants = new ArrayList<>();
-		int page = 1;
+		// 1. 필요한 페이지 수 계산 (16개 필요, 페이지당 15개 = 2페이지)
+		int pagesNeeded = (int) Math.ceil( (double) REQUIRED_RESTAURANTS / KAKAO_PAGE_SIZE );
 
-		while ( allRestaurants.size() < REQUIRED_RESTAURANTS ) {
-			KakaoSearchResponse response = fetchRestaurantsPage( latitude, longitude, radius, page );
+		log.info( "Fetching {} pages from Kakao API in parallel", pagesNeeded );
 
-			if ( response == null || response.documents().isEmpty() ) {
-				throw new NoNearbyRestaurantsException( "Can't found any around restaurant" );
-			}
+		// 2. 카카오 API 병렬 호출 (모든 페이지 동시 요청)
+		List<CompletableFuture<KakaoSearchResponse>> kakaoFutures = IntStream.rangeClosed( 1, pagesNeeded )
+				.mapToObj( page -> CompletableFuture.supplyAsync(
+						() -> fetchRestaurantsPage( latitude, longitude, radius, page ),
+						executorService
+				) )
+				.collect( Collectors.toList() );
 
-			int remaining = REQUIRED_RESTAURANTS - allRestaurants.size();
-			int toProcess = Math.min( remaining, response.documents().size() );
+		// 3. 모든 카카오 결과 수집 및 합치기
+		List<KakaoDocument> allDocuments = kakaoFutures.stream()
+				.map( this::getKakaoResponseWithTimeout )
+				.filter( Objects::nonNull )
+				.flatMap( response -> response.documents().stream() )
+				.limit( REQUIRED_RESTAURANTS )
+				.collect( Collectors.toList() );
 
-			log.info(
-					"Processing {} restaurants in parallel (page {}, need {} more)",
-					toProcess, page, remaining
-			);
-
-			List<CompletableFuture<Restaurant>> futures = response.documents().stream()
-					.limit( toProcess )
-					.map( doc -> CompletableFuture.supplyAsync(
-							() -> {
-								try {
-									return enrichmentService.enrichWithGoogleInfo( doc );
-								}
-								catch (Exception e) {
-									log.error(
-											"Error processing restaurant {}: {}",
-											doc.place_name(), e.getMessage()
-									);
-									throw new RestaurantProcessingException( "Error processing restaurant" );
-								}
-							},
-							executorService
-					) )
-					.collect( Collectors.toList() );
-
-			List<Restaurant> pageRestaurants = collectRestaurantResults( futures );
-			log.info(
-					"Completed processing {} restaurants ({} total)",
-					pageRestaurants.size(), allRestaurants.size() + pageRestaurants.size()
-			);
-
-			allRestaurants.addAll( pageRestaurants );
-
-			if ( allRestaurants.size() >= REQUIRED_RESTAURANTS ) {
-				break;
-			}
-
-			if ( response.meta().is_end() ) {
-				break;
-			}
-			page++;
+		if ( allDocuments.isEmpty() ) {
+			throw new NoNearbyRestaurantsException( "Can't find any nearby restaurant" );
 		}
+
+		log.info(
+				"Collected {} documents from Kakao, starting Google API enrichment in parallel",
+				allDocuments.size()
+		);
+
+		// 4. 구글 API 일괄 병렬 호출 (모든 레스토랑 동시 처리)
+		List<CompletableFuture<Restaurant>> googleFutures = allDocuments.stream()
+				.map( doc -> CompletableFuture.supplyAsync(
+						() -> {
+							try {
+								return enrichmentService.enrichWithGoogleInfo( doc );
+							}
+							catch (Exception e) {
+								log.error( "Error processing restaurant {}: {}", doc.place_name(), e.getMessage() );
+								throw new RestaurantProcessingException( "Error processing restaurant" );
+							}
+						},
+						executorService
+				) )
+				.collect( Collectors.toList() );
+
+		// 5. 결과 수집
+		List<Restaurant> allRestaurants = collectRestaurantResults( googleFutures );
+
+		log.info( "Completed processing {} restaurants", allRestaurants.size() );
 
 		if ( allRestaurants.size() < REQUIRED_RESTAURANTS ) {
 			throw new InsufficientRestaurantsException(
 					String.format( "Need at least 16 restaurants, but found only %d", allRestaurants.size() )
 			);
 		}
-
 		return allRestaurants;
+	}
+
+	/**
+	 * 타임아웃과 함께 Kakao API 응답 가져오기
+	 */
+	private KakaoSearchResponse getKakaoResponseWithTimeout(CompletableFuture<KakaoSearchResponse> future) {
+		try {
+			return future.get( TIMEOUT_SECONDS, TimeUnit.SECONDS );
+		}
+		catch (TimeoutException e) {
+			log.warn( "Kakao API call timed out" );
+			return null;
+		}
+		catch (Exception e) {
+			log.error( "Error fetching from Kakao API: {}", e.getMessage() );
+			return null;
+		}
 	}
 
 
