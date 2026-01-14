@@ -19,7 +19,7 @@ public class GooglePlacesApiClient extends AbstractWebClientApiClient {
 
 	private static final int MAX_PHOTO_WIDTH = 400;
 	private static final String PLACE_FIELDS =
-			"place_id,name,rating,user_ratings_total,photos,price_level,opening_hours/open_now";
+			"rating,user_ratings_total,photos,price_level,opening_hours/open_now";
 
 	public GooglePlacesApiClient(
 			@Qualifier("googleWebClient") WebClient webClient,
