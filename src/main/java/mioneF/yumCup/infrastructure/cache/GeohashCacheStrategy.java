@@ -7,9 +7,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
+
+import org.springframework.data.redis.core.Cursor;
+import org.springframework.data.redis.core.ScanOptions;
 
 /**
  * Geohash 기반 Redis 캐싱 전략
@@ -92,14 +96,41 @@ public class GeohashCacheStrategy implements CacheStrategy {
 		}
 	}
 
+	/**
+	 * 패턴 기반 캐시 삭제 (SCAN 사용으로 메모리 최적화)
+	 * KEYS 명령어 대신 SCAN을 사용하여 대규모 Redis에서도 안전하게 동작
+	 */
 	@Override
 	public void evictByPattern(String pattern) {
 		try {
-			Set<String> keys = redisTemplate.keys( pattern );
-			if ( keys != null && !keys.isEmpty() ) {
-				Long deleted = redisTemplate.delete( keys );
-				log.debug( "Cache evicted by pattern: {} (deleted: {})", pattern, deleted );
+			ScanOptions options = ScanOptions.scanOptions()
+					.match( pattern )
+					.count( 100 )
+					.build();
+
+			long deletedCount = 0;
+			List<String> keysToDelete = new ArrayList<>();
+
+			try (Cursor<String> cursor = redisTemplate.scan( options )) {
+				while ( cursor.hasNext() ) {
+					keysToDelete.add( cursor.next() );
+
+					// 배치 삭제: 100개씩 모아서 삭제하여 메모리 사용량 제한
+					if ( keysToDelete.size() >= 100 ) {
+						Long deleted = redisTemplate.delete( keysToDelete );
+						deletedCount += deleted != null ? deleted : 0;
+						keysToDelete.clear();
+					}
+				}
 			}
+
+			// 남은 키 삭제
+			if ( !keysToDelete.isEmpty() ) {
+				Long deleted = redisTemplate.delete( keysToDelete );
+				deletedCount += deleted != null ? deleted : 0;
+			}
+
+			log.debug( "Cache evicted by pattern: {} (deleted: {})", pattern, deletedCount );
 		}
 		catch (Exception e) {
 			log.error( "Failed to evict cache by pattern: {}", pattern, e );

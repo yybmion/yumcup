@@ -1,13 +1,11 @@
 package mioneF.yumCup.external.kakao.service;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
-import ch.hsr.geohash.GeoHash;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import mioneF.yumCup.domain.MatchResult;
 import mioneF.yumCup.domain.dto.request.LocationRequest;
@@ -17,10 +15,10 @@ import mioneF.yumCup.domain.dto.response.RestaurantResponse;
 import mioneF.yumCup.domain.entity.Game;
 import mioneF.yumCup.domain.entity.Match;
 import mioneF.yumCup.domain.entity.Restaurant;
+import mioneF.yumCup.infrastructure.cache.GeohashCacheStrategy;
 import mioneF.yumCup.repository.GameRepository;
 import mioneF.yumCup.repository.RestaurantRepository;
 import mioneF.yumCup.service.GameService;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,24 +30,21 @@ public class KakapMapGameService {
 	private final GameService gameService;
 	private final GameRepository gameRepository;
 	private final RestaurantRepository restaurantRepository;
-	private final StringRedisTemplate redisTemplate;
-	private final ObjectMapper objectMapper;
+	private final GeohashCacheStrategy cacheStrategy;
 
-	private static final int GEOHASH_PRECISION = 6;
+	private static final long CACHE_TTL_SECONDS = 3600;
 
 	public KakapMapGameService(
 			KakaoMapRestaurantService kakaoMapService,
 			GameService gameService,
 			GameRepository gameRepository,
 			RestaurantRepository restaurantRepository,
-			StringRedisTemplate redisTemplate,
-			ObjectMapper objectMapper) {
+			GeohashCacheStrategy cacheStrategy) {
 		this.kakaoMapService = kakaoMapService;
 		this.gameService = gameService;
 		this.gameRepository = gameRepository;
 		this.restaurantRepository = restaurantRepository;
-		this.redisTemplate = redisTemplate;
-		this.objectMapper = objectMapper;
+		this.cacheStrategy = cacheStrategy;
 	}
 
 	public MatchResult selectWinner(Long gameId, Long matchId, Long winnerId) {
@@ -65,58 +60,59 @@ public class KakapMapGameService {
 		return createGameWithRestaurants( restaurants );
 	}
 
+	/**
+	 * 레스토랑 검색 및 준비 (캐싱 전략 통일)
+	 * GeohashCacheStrategy를 사용하여 일관된 캐싱 처리
+	 */
 	public List<Restaurant> searchAndPrepareRestaurants(
 			Double latitude, Double longitude, Integer radius) {
 
-		String geohash = generateGeohash( latitude, longitude, GEOHASH_PRECISION );
-		String cacheKey = "restaurants:kakaoIds:geohash:" + geohash + ":" + radius;
+		// GeohashCacheStrategy를 사용하여 캐시 키 생성 (일관된 방식)
+		String cacheKey = cacheStrategy.generateGeohashKey(
+				"restaurants:kakaoIds",
+				latitude,
+				longitude,
+				String.valueOf( radius )
+		);
 
 		log.info( "Cache key: {}", cacheKey );
 
-		try {
-			String cached = redisTemplate.opsForValue().get( cacheKey );
-			if ( cached != null ) {
-				List<String> kakaoIds = objectMapper.readValue(
-						cached, new TypeReference<List<String>>() {
-						}
-				);
-				List<Restaurant> restaurants = restaurantRepository.findByKakaoIdIn( kakaoIds );
+		// 캐시 조회 - GeohashCacheStrategy 사용
+		Optional<List> cachedList = cacheStrategy.get( cacheKey, List.class );
+		if ( cachedList.isPresent() ) {
+			@SuppressWarnings("unchecked")
+			List<String> kakaoIds = (List<String>) cachedList.get();
+			List<Restaurant> restaurants = restaurantRepository.findByKakaoIdIn( kakaoIds );
 
-				if ( restaurants.size() == kakaoIds.size() ) {
-					Map<String, Restaurant> map = restaurants.stream()
-							.collect( Collectors.toMap( Restaurant::getKakaoId, r -> r ) );
-					return kakaoIds.stream().map( map::get ).collect( Collectors.toList() );
-				}
-				redisTemplate.delete( cacheKey );
+			if ( restaurants.size() == kakaoIds.size() ) {
+				log.info( "Cache HIT: Returning {} restaurants", restaurants.size() );
+				// LinkedHashMap으로 순서 보존하며 단일 패스 처리
+				Map<String, Restaurant> map = restaurants.stream()
+						.collect( Collectors.toMap(
+								Restaurant::getKakaoId,
+								r -> r,
+								(a, b) -> a,
+								LinkedHashMap::new
+						) );
+				return kakaoIds.stream().map( map::get ).toList();
 			}
-		}
-		catch (Exception e) {
-			log.warn( "Redis read failed: {}", e.getMessage() );
+			// 캐시 데이터 불일치 시 삭제
+			log.warn( "Cache data mismatch, evicting cache" );
+			cacheStrategy.evict( cacheKey );
 		}
 
+		log.info( "Cache MISS: Fetching restaurants from API" );
 		List<Restaurant> restaurants = kakaoMapService.searchNearbyRestaurants( latitude, longitude, radius );
 
-		try {
-			List<String> kakaoIds = restaurants.stream()
-					.map( Restaurant::getKakaoId )
-					.collect( Collectors.toList() );
+		// 캐시 저장 - GeohashCacheStrategy 사용
+		List<String> kakaoIds = restaurants.stream()
+				.map( Restaurant::getKakaoId )
+				.toList();
 
-			String json = objectMapper.writeValueAsString( kakaoIds );
-
-			redisTemplate.opsForValue().set( cacheKey, json, 1, TimeUnit.HOURS );
-
-			String verify = redisTemplate.opsForValue().get( cacheKey );
-
-		}
-		catch (Exception e) {
-			log.error( "Redis write failed: ", e );
-		}
+		cacheStrategy.put( cacheKey, kakaoIds, CACHE_TTL_SECONDS );
+		log.info( "Cached {} restaurant IDs", kakaoIds.size() );
 
 		return restaurants;
-	}
-
-	private String generateGeohash(Double latitude, Double longitude, int precision) {
-		return GeoHash.withCharacterPrecision( latitude, longitude, precision ).toBase32();
 	}
 
 	@Transactional

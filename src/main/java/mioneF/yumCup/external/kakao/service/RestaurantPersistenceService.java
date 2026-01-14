@@ -26,6 +26,7 @@ public class RestaurantPersistenceService {
 
 	/**
 	 * 레스토랑 목록을 저장하거나 업데이트
+	 * 메모리 최적화: 중간 컬렉션 최소화, 초기 용량 지정으로 재할당 방지
 	 */
 	@Transactional
 	public List<Restaurant> saveOrUpdate(List<Restaurant> restaurants) {
@@ -34,21 +35,25 @@ public class RestaurantPersistenceService {
 			return List.of();
 		}
 
-		log.debug( "Processing {} restaurants for save/update", restaurants.size() );
+		int size = restaurants.size();
+		log.debug( "Processing {} restaurants for save/update", size );
 
+		// 1. kakaoIds 추출 (DB 쿼리용) - toList()로 불변 리스트 생성
 		List<String> kakaoIds = restaurants.stream()
 				.map( Restaurant::getKakaoId )
-				.collect( Collectors.toList() );
+				.toList();
 
-		List<Restaurant> existingRestaurants = restaurantRepository.findByKakaoIdIn( kakaoIds );
-
-		Map<String, Restaurant> existingMap = existingRestaurants.stream()
+		// 2. 기존 레스토랑 조회 및 맵 생성 (단일 스트림으로 처리)
+		Map<String, Restaurant> existingMap = restaurantRepository.findByKakaoIdIn( kakaoIds )
+				.stream()
 				.collect( Collectors.toMap( Restaurant::getKakaoId, Function.identity() ) );
 
-		List<Restaurant> newRestaurants = new ArrayList<>();
-		List<Restaurant> restaurantsToUpdate = new ArrayList<>();
-		List<Restaurant> result = new ArrayList<>();
+		// 3. 초기 용량 지정으로 ArrayList 재할당 방지 (중간 리스트 3개 → 2개로 축소)
+		List<Restaurant> result = new ArrayList<>( size );
+		List<Restaurant> newRestaurants = new ArrayList<>( size - existingMap.size() );
+		int updateCount = 0;
 
+		// 4. 단일 패스로 분류 (restaurantsToUpdate 리스트 제거)
 		for ( Restaurant restaurant : restaurants ) {
 			Restaurant existing = existingMap.get( restaurant.getKakaoId() );
 
@@ -58,28 +63,26 @@ public class RestaurantPersistenceService {
 			else {
 				if ( shouldUpdate( existing ) ) {
 					existing.updateWithNewInfo( restaurant );
-					restaurantsToUpdate.add( existing );
+					updateCount++;
 				}
 				result.add( existing );
 			}
 		}
 
+		// 5. 새 레스토랑 배치 저장
 		if ( !newRestaurants.isEmpty() ) {
 			log.info( "Batch inserting {} new restaurants", newRestaurants.size() );
-			List<Restaurant> savedRestaurants = restaurantRepository.saveAll( newRestaurants );
-			result.addAll( savedRestaurants );
+			result.addAll( restaurantRepository.saveAll( newRestaurants ) );
 		}
 
-		if ( !restaurantsToUpdate.isEmpty() ) {
-			log.info( "Batch updating {} restaurants", restaurantsToUpdate.size() );
-			restaurantRepository.saveAll( restaurantsToUpdate );
+		// 업데이트된 레스토랑은 @Transactional dirty checking으로 자동 flush
+		if ( updateCount > 0 ) {
+			log.info( "Updated {} restaurants via dirty checking", updateCount );
 		}
 
 		log.debug(
 				"Completed processing: {} new, {} updated, {} total",
-				newRestaurants.size(),
-				restaurantsToUpdate.size(),
-				result.size()
+				newRestaurants.size(), updateCount, result.size()
 		);
 
 		return result;
