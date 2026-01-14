@@ -116,12 +116,16 @@ public class KakaoMapRestaurantService {
 				throw new NoNearbyRestaurantsException( "Can't found any around restaurant" );
 			}
 
+			int remaining = REQUIRED_RESTAURANTS - allRestaurants.size();
+			int toProcess = Math.min( remaining, response.documents().size() );
+
 			log.info(
-					"Processing {} restaurants in parallel (page {})",
-					response.documents().size(), page
+					"Processing {} restaurants in parallel (page {}, need {} more)",
+					toProcess, page, remaining
 			);
 
 			List<CompletableFuture<Restaurant>> futures = response.documents().stream()
+					.limit( toProcess )
 					.map( doc -> CompletableFuture.supplyAsync(
 							() -> {
 								try {
@@ -140,9 +144,16 @@ public class KakaoMapRestaurantService {
 					.collect( Collectors.toList() );
 
 			List<Restaurant> pageRestaurants = collectRestaurantResults( futures );
-			log.info( "Completed processing {} restaurants", pageRestaurants.size() );
+			log.info(
+					"Completed processing {} restaurants ({} total)",
+					pageRestaurants.size(), allRestaurants.size() + pageRestaurants.size()
+			);
 
 			allRestaurants.addAll( pageRestaurants );
+
+			if ( allRestaurants.size() >= REQUIRED_RESTAURANTS ) {
+				break;
+			}
 
 			if ( response.meta().is_end() ) {
 				break;
@@ -158,6 +169,7 @@ public class KakaoMapRestaurantService {
 
 		return allRestaurants;
 	}
+
 
 	/**
 	 * Kakao API 페이지 조회
